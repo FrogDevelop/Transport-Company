@@ -1,0 +1,64 @@
+{
+  "name": "Transport Company Simulator",
+  "short_name": "Logix Transport",
+  "description": "Экономический симулятор управления транспортно-логистической компанией",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "portrait-primary",
+  "background_color": "#080a0f",
+  "theme_color": "#080a0f",
+  "lang": "ru",
+  "dir": "ltr",
+  "categories": ["games", "simulation", "business"],
+  "icons": [
+    {
+      "src": "icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Биржа заказов",
+      "short_name": "Заказы",
+      "description": "Перейти к поиску заказов",
+      "url": "./index.html#orders",
+      "icons": [{ "src": "icons/shortcut-orders.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Рейсы в пути",
+      "short_name": "Рейсы",
+      "description": "Мониторинг активных доставок",
+      "url": "./index.html#trips",
+      "icons": [{ "src": "icons/shortcut-trips.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Автопарк",
+      "short_name": "Флот",
+      "description": "Управление тягачами и прицепами",
+      "url": "./index.html#fleet",
+      "icons": [{ "src": "icons/shortcut-fleet.png", "sizes": "96x96" }]
+    }
+  ]
+}

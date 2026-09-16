@@ -1,0 +1,87 @@
+.market-header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-5);
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.season-indicator-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--glass-surface);
+  border: 1px solid var(--glass-border);
+}
+
+.season-icon-box { font-size: 1.5rem; }
+.season-info-text { display: flex; flex-direction: column; }
+.season-name-title { font-size: 0.95rem; font-weight: 700; }
+.season-impact-sub { font-size: 0.75rem; color: var(--accent-blue); }
+
+.fuel-ticker-panel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--glass-surface);
+  border: 1px solid var(--glass-border);
+  margin-bottom: var(--space-5);
+}
+
+.fuel-price-badge { display: flex; align-items: baseline; gap: 4px; }
+.fuel-price-val { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px; }
+
+.fuel-trend-tag {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.fuel-trend-tag.up { background: rgba(255, 69, 58, 0.15); color: var(--accent-red); }
+.fuel-trend-tag.down { background: rgba(48, 209, 88, 0.15); color: var(--accent-green); }
+
+.used-trucks-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+}
+
+@media (min-width: 900px) { .used-trucks-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.used-truck-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  border: 1px solid var(--glass-border);
+  position: relative;
+}
+
+.used-history-tag { display: flex; gap: var(--space-2); font-size: 0.74rem; }
+
+.history-pill {
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--glass-subgroup);
+  border: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+}
+
+.history-pill.warn { color: var(--accent-orange); border-color: rgba(255, 159, 10, 0.3); }
+
+.used-pricing-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--glass-border);
+  padding-top: var(--space-3);
+  margin-top: auto;
+}
+
+.used-original-price { font-size: 0.8rem; color: var(--text-muted); text-decoration: line-through; }
+.used-deal-price { font-size: 1.3rem; font-weight: 800; color: var(--accent-green); }

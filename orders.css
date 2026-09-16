@@ -1,0 +1,98 @@
+.orders-filter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-5);
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.orders-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+}
+
+@media (min-width: 992px) { .orders-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.order-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  border: 1px solid var(--glass-border);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.order-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+}
+
+.order-route-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.route-points {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.route-arrow { color: var(--accent-blue); }
+.order-reward-tag { font-size: 1.25rem; font-weight: 800; color: var(--accent-green); }
+
+.cargo-specs-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2);
+  font-size: 0.8rem;
+}
+
+.spec-cell { display: flex; flex-direction: column; }
+.spec-title { font-size: 0.7rem; color: var(--text-muted); }
+.spec-value { font-weight: 600; color: var(--text-primary); }
+
+.trailer-requirement-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--glass-subgroup);
+  border: 1px solid var(--glass-border);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.order-margin-projection {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: rgba(10, 132, 255, 0.06);
+  border: 1px solid rgba(10, 132, 255, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.margin-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.margin-row.highlight {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--accent-green);
+  border-top: 1px dashed var(--glass-border);
+  padding-top: 4px;
+  margin-top: 2px;
+}

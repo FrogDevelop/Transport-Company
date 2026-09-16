@@ -1,0 +1,90 @@
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Roboto, sans-serif;
+  --space-2: 4px;
+  --space-3: 8px;
+  --space-4: 12px;
+  --space-5: 16px;
+  --space-6: 20px;
+  --space-7: 24px;
+  --space-8: 32px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+  --ease-ios: cubic-bezier(0.25, 1, 0.5, 1);
+  --transition-fast: 0.18s var(--ease-ios);
+  --transition-normal: 0.3s var(--ease-ios);
+}
+
+[data-theme="dark"] {
+  --bg-canvas: #080a0f;
+  --bg-canvas-subtle: #0f131a;
+  --text-primary: #f5f7fa;
+  --text-secondary: #9aa4b2;
+  --text-muted: #5e6978;
+  --accent-blue: #0a84ff;
+  --accent-blue-tint: rgba(10, 132, 255, 0.15);
+  --accent-green: #30d158;
+  --accent-green-tint: rgba(48, 209, 88, 0.15);
+  --accent-orange: #ff9f0a;
+  --accent-orange-tint: rgba(255, 159, 10, 0.15);
+  --accent-red: #ff453a;
+  --accent-red-tint: rgba(255, 69, 58, 0.15);
+  --glass-surface: rgba(20, 24, 33, 0.65);
+  --glass-surface-hover: rgba(30, 36, 50, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-specular: rgba(255, 255, 255, 0.14);
+  --glass-shadow: 0 12px 36px 0 rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="light"] {
+  --bg-canvas: #f2f4f8;
+  --bg-canvas-subtle: #e6e9f0;
+  --text-primary: #12161f;
+  --text-secondary: #586375;
+  --text-muted: #8c97a8;
+  --accent-blue: #007aff;
+  --accent-blue-tint: rgba(0, 122, 255, 0.12);
+  --accent-green: #34c759;
+  --accent-green-tint: rgba(52, 199, 89, 0.12);
+  --accent-orange: #ff9500;
+  --accent-orange-tint: rgba(255, 149, 0, 0.12);
+  --accent-red: #ff3b30;
+  --accent-red-tint: rgba(255, 59, 48, 0.12);
+  --glass-surface: rgba(255, 255, 255, 0.72);
+  --glass-surface-hover: rgba(255, 255, 255, 0.88);
+  --glass-border: rgba(0, 0, 0, 0.07);
+  --glass-specular: rgba(255, 255, 255, 0.85);
+  --glass-shadow: 0 10px 30px 0 rgba(0, 20, 50, 0.08);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  user-select: none;
+}
+
+button, select {
+  font-family: inherit;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  outline: none;
+}

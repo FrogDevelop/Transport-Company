@@ -1,0 +1,107 @@
+.drivers-controls-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-5);
+}
+
+.drivers-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+}
+
+@media (min-width: 900px) { .drivers-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1350px) { .drivers-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.driver-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  border: 1px solid var(--glass-border);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.driver-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+}
+
+.driver-card-header { display: flex; align-items: center; gap: var(--space-3); }
+
+.driver-avatar-box {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  background: var(--glass-subgroup);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  border: 1px solid var(--glass-border);
+}
+
+.driver-identity { display: flex; flex-direction: column; flex: 1; }
+.driver-name { font-size: 1.05rem; font-weight: 700; letter-spacing: -0.3px; }
+.driver-rank-sub { font-size: 0.78rem; color: var(--text-muted); }
+
+.driver-status-badge {
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.driver-status-badge.rest {
+  background: rgba(48, 209, 88, 0.15);
+  color: var(--accent-green);
+  border: 1px solid rgba(48, 209, 88, 0.3);
+}
+
+.driver-status-badge.driving {
+  background: rgba(10, 132, 255, 0.15);
+  color: var(--accent-blue);
+  border: 1px solid rgba(10, 132, 255, 0.3);
+}
+
+.driver-skills-matrix {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--glass-subgroup);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-border);
+  font-size: 0.8rem;
+}
+
+.driver-skill-row { display: flex; justify-content: space-between; align-items: center; }
+.driver-skill-label { color: var(--text-secondary); }
+.driver-skill-val { font-weight: 700; color: var(--accent-blue); }
+
+.driver-stamina-container { display: flex; flex-direction: column; gap: 4px; }
+
+.driver-stamina-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.driver-stamina-track {
+  width: 100%;
+  height: 6px;
+  background: var(--glass-subgroup);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.driver-stamina-fill { height: 100%; border-radius: var(--radius-full); transition: width 0.3s ease; }
+.driver-stamina-fill.good { background: var(--accent-green); }
+.driver-stamina-fill.tired { background: var(--accent-orange); }
+.driver-stamina-fill.exhausted { background: var(--accent-red); }
+
+.driver-card-actions { display: flex; gap: var(--space-3); margin-top: auto; }
+.driver-card-actions button { flex: 1; }
