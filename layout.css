@@ -1,6 +1,7 @@
 .app-root {
   display: flex;
   width: 100vw;
+  height: 100vh;
   height: 100dvh;
   position: relative;
   background: radial-gradient(circle at 50% 0%, var(--bg-canvas-subtle) 0%, var(--bg-canvas) 85%);
@@ -113,9 +114,13 @@
   overflow: hidden;
 }
 
+/* Верхняя плашка с безопасным отступом под Dynamic Island */
 .app-topbar {
-  height: 56px;
-  padding: 0 var(--space-4);
+  flex-shrink: 0;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
+  padding-bottom: 10px;
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -127,7 +132,7 @@
 .company-quick-info {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
 }
 
 .status-indicator.live {
@@ -136,27 +141,33 @@
   border-radius: var(--radius-full);
   background-color: var(--accent-green);
   box-shadow: 0 0 10px var(--accent-green);
+  flex-shrink: 0;
 }
 
 .game-time-display {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.2px;
 }
 
+/* Кнопки скорости времени: увеличенная область нажатия под пальцы */
 .time-controls {
   display: flex;
-  gap: 2px;
-  padding: 2px;
+  gap: 3px;
+  padding: 3px;
   border-radius: var(--radius-full);
+  background: var(--glass-subgroup);
+  border: 1px solid var(--glass-border);
 }
 
 .time-speed-btn {
-  padding: 4px 9px;
+  padding: 6px 11px;
   border-radius: var(--radius-full);
-  font-size: 0.72rem;
-  font-weight: 600;
+  font-size: 0.74rem;
+  font-weight: 700;
   color: var(--text-secondary);
+  touch-action: manipulation;
 }
 
 .time-speed-btn.active {
@@ -169,15 +180,16 @@
   align-items: baseline;
   gap: 2px;
   font-weight: 700;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   color: var(--accent-green);
 }
 
+/* Рабочая область экрана без жестких вычитаний calc */
 .app-content-stage {
   flex: 1;
   position: relative;
   overflow: hidden;
-  height: calc(100% - 56px - 60px);
+  min-height: 0;
 }
 
 .tab-view {
@@ -195,27 +207,32 @@
   transform: translateY(0);
 }
 
+/* Прокрутка контента без двойных отступов */
 .view-scroll-content {
   width: 100%;
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: var(--space-4);
+  padding: 14px;
+  padding-bottom: 24px;
   box-sizing: border-box;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
 }
 
+/* Нижний таббар: высота адаптируется под Home Indicator без лишней пустоты */
 .mobile-tabbar {
   position: relative;
-  height: 60px;
+  flex-shrink: 0;
+  padding-top: 6px;
+  padding-bottom: max(6px, env(safe-area-inset-bottom, 0px));
   display: flex;
   justify-content: space-around;
   align-items: center;
   z-index: 50;
   border-top: 1px solid var(--glass-border);
   box-sizing: border-box;
-  flex-shrink: 0;
+  background: var(--glass-surface);
 }
 
 .tabbar-item {
@@ -223,10 +240,11 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 3px;
   flex: 1;
-  height: 100%;
+  padding: 4px 0;
   color: var(--text-muted);
+  touch-action: manipulation;
 }
 
 .tabbar-item span {
@@ -237,14 +255,14 @@
 .tabbar-item.active { color: var(--accent-blue); }
 
 .tabbar-icon {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   fill: currentColor;
 }
 
 @media (min-width: 992px) {
   .desktop-sidebar { display: flex; }
   .mobile-tabbar { display: none; }
-  .app-content-stage { height: calc(100% - 56px); }
-  .view-scroll-content { padding: var(--space-6); }
+  .app-topbar { padding-top: 14px; padding-bottom: 14px; }
+  .view-scroll-content { padding: var(--space-6); padding-bottom: var(--space-6); }
 }
