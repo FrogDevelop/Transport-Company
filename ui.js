@@ -83,30 +83,36 @@ const AppUI = {
   },
 
   switchTab(tabId) {
-    this.currentTab = tabId;
+      this.currentTab = tabId;
 
-    document.querySelectorAll(".tab-view").forEach(view => {
-      view.classList.toggle("active", view.id === `view-${tabId}`);
-    });
+      document.querySelectorAll(".tab-view").forEach(view => {
+        view.classList.toggle("active", view.id === `view-${tabId}`);
+      });
 
-    document.querySelectorAll(".nav-item, .tabbar-item").forEach(item => {
-      item.classList.toggle("active", item.getAttribute("data-tab") === tabId);
-    });
+      document.querySelectorAll(".nav-item, .tabbar-item").forEach(item => {
+        const isActive = item.getAttribute("data-tab") === tabId;
+        item.classList.toggle("active", isActive);
 
-    if (tabId === "dashboard") this.renderDashboard();
-    if (tabId === "orders" && typeof AppOrders !== "undefined") AppOrders.renderOrdersView();
-    if (tabId === "trips" && typeof AppTrips !== "undefined") AppTrips.renderTripsView();
-    if (tabId === "fleet" && typeof AppTrucks !== "undefined") AppTrucks.renderFleetView();
-    if (tabId === "dealership" && typeof AppDealership !== "undefined") AppDealership.renderDealershipView();
-    if (tabId === "drivers" && typeof AppDrivers !== "undefined") AppDrivers.renderDriversView();
-    if (tabId === "drivers_market" && typeof AppDrivers !== "undefined") AppDrivers.renderMarketTab();
-    if (tabId === "garage" && typeof AppGarage !== "undefined") AppGarage.renderGarageView();
-    if (tabId === "finances" && typeof AppFinance !== "undefined") AppFinance.renderFinanceView();
-    if (tabId === "contracts" && typeof AppContracts !== "undefined") AppContracts.renderContractsView();
-    if (tabId === "market" && typeof AppMarket !== "undefined") AppMarket.renderMarketView();
-    if (tabId === "company" && typeof AppCompany !== "undefined") AppCompany.renderCompanyView();
-    if (tabId === "analytics" && typeof AppAnalytics !== "undefined") AppAnalytics.renderAnalyticsView();
-  },
+        // Автоматически центрируем выбранную вкладку в мобильном таббаре
+        if (isActive && item.classList.contains("tabbar-item")) {
+          item.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+        }
+      });
+
+      if (tabId === "dashboard") this.renderDashboard();
+      if (tabId === "orders" && typeof AppOrders !== "undefined") AppOrders.renderOrdersView();
+      if (tabId === "trips" && typeof AppTrips !== "undefined") AppTrips.renderTripsView();
+      if (tabId === "fleet" && typeof AppTrucks !== "undefined") AppTrucks.renderFleetView();
+      if (tabId === "dealership" && typeof AppDealership !== "undefined") AppDealership.renderDealershipView();
+      if (tabId === "drivers" && typeof AppDrivers !== "undefined") AppDrivers.renderDriversView();
+      if (tabId === "drivers_market" && typeof AppDrivers !== "undefined") AppDrivers.renderMarketTab();
+      if (tabId === "garage" && typeof AppGarage !== "undefined") AppGarage.renderGarageView();
+      if (tabId === "finances" && typeof AppFinance !== "undefined") AppFinance.renderFinanceView();
+      if (tabId === "contracts" && typeof AppContracts !== "undefined") AppContracts.renderContractsView();
+      if (tabId === "market" && typeof AppMarket !== "undefined") AppMarket.renderMarketView();
+      if (tabId === "company" && typeof AppCompany !== "undefined") AppCompany.renderCompanyView();
+      if (tabId === "analytics" && typeof AppAnalytics !== "undefined") AppAnalytics.renderAnalyticsView();
+    },
 
   updateTimeControlsUI(activeSpeed) {
     document.querySelectorAll(".time-speed-btn").forEach(btn => {
