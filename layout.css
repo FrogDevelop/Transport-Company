@@ -114,7 +114,7 @@
   overflow: hidden;
 }
 
-/* Верхняя плашка с безопасным отступом под Dynamic Island */
+/* Верхняя плашка */
 .app-topbar {
   flex-shrink: 0;
   padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
@@ -151,7 +151,6 @@
   letter-spacing: -0.2px;
 }
 
-/* Кнопки скорости времени: увеличенная область нажатия под пальцы */
 .time-controls {
   display: flex;
   gap: 3px;
@@ -184,7 +183,7 @@
   color: var(--accent-green);
 }
 
-/* Рабочая область экрана без жестких вычитаний calc */
+/* Рабочая область экрана */
 .app-content-stage {
   flex: 1;
   position: relative;
@@ -207,43 +206,42 @@
   transform: translateY(0);
 }
 
-/* Прокрутка контента */
+/* Прокрутка контента: жесткий отступ снизу ровно под таббар, без лишних системных зазоров */
 .view-scroll-content {
   width: 100%;
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 14px;
-  padding-bottom: calc(52px + env(safe-area-inset-bottom, 0px)); /* Аккуратный отступ под мобильный таббар */
+  padding-bottom: 60px; 
   box-sizing: border-box;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
 }
 
-/* Нижний мобильный таббар: 6 элементов строго по центру сетки без прокрутки */
+/* Нижний мобильный таббар: прижат к самому низу, без учета системного отступа снизу */
 .mobile-tabbar {
-  position: relative;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
   flex-shrink: 0;
   width: 100%;
-  height: 52px;
-  min-height: 52px;
+  height: 48px;
+  min-height: 48px;
   margin: 0 !important;
-  bottom: 0;
   z-index: 50;
   border-top: 1px solid var(--glass-border);
-  border-bottom: none !important;
   box-sizing: border-box;
   background: var(--glass-surface);
   backdrop-filter: blur(28px) saturate(190%);
   -webkit-backdrop-filter: blur(28px) saturate(190%);
 
-  /* Сетка из 6 равных колонок без скролла */
+  /* Сетка из 6 равных колонок без скролла и без нижних отступов */
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   align-items: center;
-  padding: 2px 4px;
-  /* Минимальный отступ под нижнюю домашнюю полоску айфона */
-  padding-bottom: max(2px, env(safe-area-inset-bottom, 2px));
+  padding: 0 2px;
 }
 
 .tabbar-item {
@@ -251,7 +249,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 1px;
   width: 100%;
   height: 100%;
   padding: 2px 0;
@@ -260,11 +258,11 @@
   flex-shrink: 0;
   border-radius: var(--radius-sm);
   transition: color 0.15s ease, background-color 0.15s ease;
-  min-width: 0; /* Чтобы текст не распирал сетку */
+  min-width: 0;
 }
 
 .tabbar-item span {
-  font-size: 0.60rem;
+  font-size: 0.58rem;
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
@@ -278,8 +276,8 @@
 }
 
 .tabbar-icon {
-  width: 19px;
-  height: 19px;
+  width: 18px;
+  height: 18px;
   fill: currentColor;
   flex-shrink: 0;
 }
