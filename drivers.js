@@ -46,10 +46,14 @@ const AppDrivers = {
   },
 
   renderDriversView() {
-    const s = AppState.get();
+    if (typeof AppOfficeHub !== "undefined" && AppUI.currentTab === "office_hub") {
+      AppOfficeHub.renderView();
+      return;
+    }
     const container = document.getElementById("view-drivers");
     if (!container) return;
 
+    const s = AppState.get();
     container.innerHTML = `
       <div class="view-scroll-content">
         <div class="drivers-controls-bar">
@@ -57,7 +61,7 @@ const AppDrivers = {
             <h2 style="font-size: 1.25rem; font-weight: 700;">Штат дальнобойщиков</h2>
             <span style="font-size: 0.78rem; color: var(--text-muted);">В штате: ${s.drivers.length} чел.</span>
           </div>
-          <button class="btn-glass primary small" onclick="AppUI.switchTab('drivers_market')">+ Биржа найма</button>
+          <button class="btn-glass primary small" onclick="AppUI.switchTab('market_hub'); AppMarketHub.setSubTab('hr');">+ Биржа найма</button>
         </div>
 
         <div class="drivers-grid">
@@ -95,8 +99,10 @@ const AppDrivers = {
             <span class="driver-skill-val">€${driver.dailyWage} / день</span>
           </div>
           <div class="driver-skill-row" style="grid-column: span 2;">
-            <span class="driver-skill-label">Тягач:</span>
-            <span class="driver-skill-val">${assignedTruck ? assignedTruck.model : 'Не закреплен'}</span>
+            <span class="driver-skill-label">Закрепленный тягач:</span>
+            <span class="driver-skill-val" style="color: ${assignedTruck ? 'var(--accent-blue)' : 'var(--text-muted)'}">
+              ${assignedTruck ? assignedTruck.model : 'Свободен (Не назначен)'}
+            </span>
           </div>
         </div>
 
@@ -111,59 +117,9 @@ const AppDrivers = {
         </div>
 
         <div class="driver-card-actions">
-          <button class="btn-glass small" onclick="AppDrivers.openAssignTruckModal('${driver.id}')">Закрепить авто</button>
-          <button class="btn-glass small" style="color: var(--accent-red);" onclick="AppDrivers.fireDriver('${driver.id}')">Уволить</button>
-        </div>
-      </div>
-    `;
-  },
-
-  renderMarketTab() {
-    const s = AppState.get();
-    const container = document.getElementById("view-drivers_market");
-    if (!container) return;
-
-    container.innerHTML = `
-      <div class="view-scroll-content">
-        <div class="drivers-controls-bar">
-          <div>
-            <h2 style="font-size: 1.25rem; font-weight: 700;">Европейская биржа труда</h2>
-            <span style="font-size: 0.78rem; color: var(--text-muted);">Квалифицированные водители категорий C+E</span>
-          </div>
-          <button class="btn-glass small" onclick="AppDrivers.generateCandidatesPool(6); AppDrivers.renderMarketTab();">Обновить анкеты</button>
-        </div>
-
-        <div class="drivers-grid">
-          ${s.marketDrivers.map(cand => `
-            <div class="glass-card driver-card">
-              <div class="driver-card-header">
-                <div class="driver-avatar-box">📑</div>
-                <div class="driver-identity">
-                  <span class="driver-name">${cand.name}</span>
-                  <span class="driver-rank-sub">${cand.age} лет | Стаж: ${cand.experienceYears} лет | Рейтинг ★ ${cand.rating}</span>
-                </div>
-              </div>
-
-              <div class="driver-skills-matrix">
-                <div class="driver-skill-row">
-                  <span class="driver-skill-label">Экономия топлива:</span>
-                  <span class="driver-skill-val">-${cand.ecoDrivingSkill}%</span>
-                </div>
-                <div class="driver-skill-row">
-                  <span class="driver-skill-label">Ставка в день:</span>
-                  <span class="driver-skill-val">€${cand.dailyWage}</span>
-                </div>
-              </div>
-
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto; border-top: 1px solid var(--glass-border); padding-top: 10px;">
-                <div>
-                  <span style="font-size: 0.72rem; color: var(--text-muted);">Бонус при найме:</span>
-                  <div style="font-weight: 700; color: var(--accent-orange);">€${cand.hiringBonus.toLocaleString()}</div>
-                </div>
-                <button class="btn-glass primary small" onclick="AppDrivers.hireCandidate('${cand.id}')">Подписать контракт</button>
-              </div>
-            </div>
-          `).join('')}
+          <button class="btn-glass small" style="color: var(--accent-red); width: 100%;" onclick="AppDrivers.fireDriver('${driver.id}')">
+            Уволить сотрудника
+          </button>
         </div>
       </div>
     `;
@@ -200,8 +156,11 @@ const AppDrivers = {
     s.marketDrivers.splice(idx, 1);
     AppStorage.save(s);
     AppUI.renderAll();
-    this.renderMarketTab();
-    alert(`Водитель ${cand.name} зачислен в компанию!`);
+
+    if (typeof AppOfficeHub !== "undefined" && AppUI.currentTab === "office_hub") {
+      AppOfficeHub.renderView();
+    }
+    alert(`Водитель ${cand.name} зачислен в штат компании!`);
   },
 
   fireDriver(driverId) {
@@ -225,50 +184,14 @@ const AppDrivers = {
     s.drivers.splice(idx, 1);
     AppStorage.save(s);
     AppUI.renderAll();
-    this.renderDriversView();
-  },
 
-  openAssignTruckModal(driverId) {
-    const s = AppState.get();
-    const driver = s.drivers.find(d => d.id === driverId);
-    if (!driver) return;
-
-    const availableTrucks = s.trucks.filter(t => t.status !== "trip");
-
-    const html = `
-      <div style="display: flex; flex-direction: column; gap: var(--space-3);">
-        <p style="font-size: 0.82rem; color: var(--text-secondary);">Закрепление машины за шофером ${driver.name}:</p>
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          ${availableTrucks.map(truck => `
-            <div class="glass-subgroup" style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-radius: var(--radius-md);">
-              <div>
-                <strong>${truck.model}</strong>
-                <div style="font-size: 0.74rem; color: var(--text-muted);">${truck.mileageKm.toLocaleString()} км | ${truck.engineType === 'electric' ? '⚡ Электро' : '⛽ Дизель'}</div>
-              </div>
-              <button class="btn-glass small" onclick="AppDrivers.assignTruck('${driver.id}', '${truck.id}')">Закрепить</button>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `;
-    AppUI.openSheet("Выбор машины", html);
-  },
-
-  assignTruck(driverId, truckId) {
-    const s = AppState.get();
-    const driver = s.drivers.find(d => d.id === driverId);
-    const truck = s.trucks.find(t => t.id === truckId);
-    if (!driver || !truck) return;
-
-    s.drivers.forEach(d => { if (d.assignedTruckId === truckId) d.assignedTruckId = null; });
-    s.trucks.forEach(t => { if (t.assignedDriverId === driverId) t.assignedDriverId = null; });
-
-    driver.assignedTruckId = truck.id;
-    truck.assignedDriverId = driver.id;
-
-    AppStorage.save(s);
-    AppUI.closeSheet();
-    AppUI.renderAll();
-    this.renderDriversView();
+    if (typeof AppOfficeHub !== "undefined" && AppUI.currentTab === "office_hub") {
+      AppOfficeHub.renderView();
+    } else {
+      this.renderDriversView();
+    }
+    if (typeof AppGarage !== "undefined" && AppUI.currentTab === "garage_hub") {
+      AppGarage.renderGarageView();
+    }
   }
 };

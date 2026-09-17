@@ -1,47 +1,12 @@
-const TENDERS_CATALOG = [
-  {
-    id: "tnd-metro-retail",
-    clientName: "Metro Retail Logistics SE",
-    industry: "Крупный продуктовый ритейл",
-    logoIcon: "🛒",
-    routeDescription: "Берлин ⇄ Гамбург / Прага",
-    requiredTrailerType: "curtainsider",
-    weeklyQuotaTrips: 4,
-    ratePerTrip: 2400,
-    termDays: 21,
-    failurePenalty: 12000,
-    minReputation: 60,
-    minFleetSize: 2,
-    payoutAdvanceBonus: 4000
-  },
-  {
-    id: "tnd-bavaria-pharma",
-    clientName: "Bavaria Pharma Care GmbH",
-    industry: "Фармацевтика и вакцины",
-    logoIcon: "💊",
-    routeDescription: "Мюнхен ⇄ Вена / Париж",
-    requiredTrailerType: "refrigerated",
-    weeklyQuotaTrips: 3,
-    ratePerTrip: 4100,
-    termDays: 28,
-    failurePenalty: 22000,
-    minReputation: 75,
-    minFleetSize: 2,
-    payoutAdvanceBonus: 8000
-  },
-  {
-    id: "tnd-nordic-heavy",
-    clientName: "Nordic Machinery Alliance",
-    industry: "Тяжелое промышленное машиностроение",
-    logoIcon: "🏭",
-    routeDescription: "Гамбург ⇄ Варшава / Милан",
-    requiredTrailerType: "flatbed",
-    weeklyQuotaTrips: 2,
-    ratePerTrip: 5200,
-    termDays: 30,
-    failurePenalty: 18000,
-    minReputation: 70,
-    minFleetSize: 3,
-    payoutAdvanceBonus: 6000
-  }
+const CONTRACT_CLIENT_TEMPLATES = [
+  { name: "Metro Logistics Distribution", logo: "🛒", industry: "Ритейл & Сети", licenses: ["lic_standard", "lic_perishable"] },
+  { name: "EuroStroy Baumaterial Group", logo: "🧱", industry: "Строительный сектор", licenses: ["lic_standard", "lic_heavy"] },
+  { name: "Nordic AgroUnion Foods", logo: "🍎", industry: "Агропромышленность", licenses: ["lic_perishable"] },
+  { name: "Saint-Gobain Vitrage", logo: "🪟", industry: "Стекольная промышленность", licenses: ["lic_fragile"] },
+  { name: "Bavaria Motoren Werke", logo: "⚙️", industry: "Автомобилестроение", licenses: ["lic_heavy", "lic_standard"] },
+  { name: "BASF Chemical Solutions", logo: "☣️", industry: "Нефтехимия & Синтез", licenses: ["lic_adr"] },
+  { name: "ASML European Silicon Hub", logo: "🔬", industry: "Микроэлектроника", licenses: ["lic_valuable"] },
+  { name: "Equinix Cloud Systems", logo: "🖥️", industry: "Телекоммуникации & ЦОД", licenses: ["lic_valuable"] },
+  { name: "Vestas Wind Offshore Power", logo: "🌀", industry: "Зеленая энергетика", licenses: ["lic_oversized"] },
+  { name: "ThyssenKrupp Industrial Steel", logo: "🏗️", industry: "Тяжелая металлургия", licenses: ["lic_heavy"] }
 ];

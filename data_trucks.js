@@ -1,11 +1,12 @@
 const TRUCK_MODELS = [
-  // Дизельный сегмент - Standard & Eco
+  // Дизельный сегмент - Экономичный и средний класс (Колесная формула 4x2)
   {
     modelId: "daf-xf-480",
     brand: "DAF",
     modelName: "DAF XF 480 Super Space",
     engineType: "diesel",
-    enginePowerHp: 480,
+    enginePowerHp: 483,
+    maxPayloadTons: 25.0,
     basePrice: 88000,
     fuelTankCapacityL: 840,
     baseFuelConsumptionL100: 27.8,
@@ -19,6 +20,7 @@ const TRUCK_MODELS = [
     modelName: "MAN TGX 18.470 EfficientLine",
     engineType: "diesel",
     enginePowerHp: 470,
+    maxPayloadTons: 24.5,
     basePrice: 92000,
     fuelTankCapacityL: 780,
     baseFuelConsumptionL100: 27.5,
@@ -32,6 +34,7 @@ const TRUCK_MODELS = [
     modelName: "MAN TGX 18.510 Individual Lion",
     engineType: "diesel",
     enginePowerHp: 510,
+    maxPayloadTons: 25.2,
     basePrice: 96000,
     fuelTankCapacityL: 800,
     baseFuelConsumptionL100: 28.5,
@@ -45,6 +48,7 @@ const TRUCK_MODELS = [
     modelName: "Iveco S-Way 480 Natural Power",
     engineType: "diesel",
     enginePowerHp: 480,
+    maxPayloadTons: 24.8,
     basePrice: 85000,
     fuelTankCapacityL: 790,
     baseFuelConsumptionL100: 27.2,
@@ -58,6 +62,7 @@ const TRUCK_MODELS = [
     modelName: "Iveco S-Way 530 Cursor 13",
     engineType: "diesel",
     enginePowerHp: 530,
+    maxPayloadTons: 25.5,
     basePrice: 94000,
     fuelTankCapacityL: 820,
     baseFuelConsumptionL100: 28.6,
@@ -71,6 +76,7 @@ const TRUCK_MODELS = [
     modelName: "Renault T-High 480 Sleeper",
     engineType: "diesel",
     enginePowerHp: 480,
+    maxPayloadTons: 24.6,
     basePrice: 89000,
     fuelTankCapacityL: 800,
     baseFuelConsumptionL100: 27.9,
@@ -84,6 +90,7 @@ const TRUCK_MODELS = [
     modelName: "Renault T-High 520 Turbo-Compound",
     engineType: "diesel",
     enginePowerHp: 520,
+    maxPayloadTons: 25.4,
     basePrice: 99000,
     fuelTankCapacityL: 850,
     baseFuelConsumptionL100: 28.2,
@@ -96,7 +103,8 @@ const TRUCK_MODELS = [
     brand: "Mercedes-Benz",
     modelName: "Mercedes Actros 1848 StreamSpace",
     engineType: "diesel",
-    enginePowerHp: 480,
+    enginePowerHp: 476,
+    maxPayloadTons: 25.0,
     basePrice: 104000,
     fuelTankCapacityL: 820,
     baseFuelConsumptionL100: 27.6,
@@ -110,6 +118,7 @@ const TRUCK_MODELS = [
     modelName: "Mercedes Actros 1853 GigaSpace",
     engineType: "diesel",
     enginePowerHp: 530,
+    maxPayloadTons: 25.6,
     basePrice: 112000,
     fuelTankCapacityL: 820,
     baseFuelConsumptionL100: 28.0,
@@ -123,6 +132,7 @@ const TRUCK_MODELS = [
     modelName: "Mercedes Actros 1863 Edition 2",
     engineType: "diesel",
     enginePowerHp: 625,
+    maxPayloadTons: 27.0,
     basePrice: 129000,
     fuelTankCapacityL: 890,
     baseFuelConsumptionL100: 30.5,
@@ -136,6 +146,7 @@ const TRUCK_MODELS = [
     modelName: "Volvo FH 460 I-Save TC",
     engineType: "diesel",
     enginePowerHp: 460,
+    maxPayloadTons: 25.0,
     basePrice: 101000,
     fuelTankCapacityL: 860,
     baseFuelConsumptionL100: 26.5,
@@ -149,6 +160,7 @@ const TRUCK_MODELS = [
     modelName: "Volvo FH 540 Globetrotter XL",
     engineType: "diesel",
     enginePowerHp: 540,
+    maxPayloadTons: 26.2,
     basePrice: 108000,
     fuelTankCapacityL: 850,
     baseFuelConsumptionL100: 29.0,
@@ -157,11 +169,13 @@ const TRUCK_MODELS = [
     icon: "🚛"
   },
   {
+    // Тяжелое 3-осное шасси (6x4) под негабарит и спецтехнику
     modelId: "volvo-fh16-750",
     brand: "Volvo",
     modelName: "Volvo FH16 750 Monster XXL",
     engineType: "diesel",
     enginePowerHp: 750,
+    maxPayloadTons: 31.5,
     basePrice: 142000,
     fuelTankCapacityL: 920,
     baseFuelConsumptionL100: 33.0,
@@ -175,6 +189,7 @@ const TRUCK_MODELS = [
     modelName: "Scania Super R450 Highline",
     engineType: "diesel",
     enginePowerHp: 450,
+    maxPayloadTons: 24.8,
     basePrice: 106000,
     fuelTankCapacityL: 800,
     baseFuelConsumptionL100: 26.2,
@@ -188,6 +203,7 @@ const TRUCK_MODELS = [
     modelName: "Scania R500 V8 Streamline",
     engineType: "diesel",
     enginePowerHp: 500,
+    maxPayloadTons: 25.8,
     basePrice: 114000,
     fuelTankCapacityL: 750,
     baseFuelConsumptionL100: 29.8,
@@ -196,11 +212,13 @@ const TRUCK_MODELS = [
     icon: "🚛"
   },
   {
+    // Флагман V8 King of Road (усиленная рама под тяжелые грузы)
     modelId: "scania-770s-v8",
     brand: "Scania",
     modelName: "Scania 770S V8 King of Road",
     engineType: "diesel",
     enginePowerHp: 770,
+    maxPayloadTons: 32.0,
     basePrice: 154000,
     fuelTankCapacityL: 900,
     baseFuelConsumptionL100: 34.2,
@@ -210,16 +228,18 @@ const TRUCK_MODELS = [
   },
 
   // Электрический флагманский сегмент (Electric BEV)
+  // Из-за массы батарей (около 3.5–4.5 тонн) полезная нагрузка строго 22–24 тонны
   {
     modelId: "volvo-fh-electric",
     brand: "Volvo",
     modelName: "Volvo FH Electric 540kWh",
     engineType: "electric",
     enginePowerHp: 666,
+    maxPayloadTons: 23.5,
     basePrice: 178000,
-    fuelTankCapacityL: 540, // кВт⋅ч емкость
-    baseFuelConsumptionL100: 105, // кВт⋅ч / 100 км
-    durabilityRating: 0.65, // Реже ломается
+    fuelTankCapacityL: 540,
+    baseFuelConsumptionL100: 105,
+    durabilityRating: 0.65,
     serviceCostMultiplier: 0.7,
     icon: "⚡"
   },
@@ -229,6 +249,7 @@ const TRUCK_MODELS = [
     modelName: "Scania 45S BEV 624kWh",
     engineType: "electric",
     enginePowerHp: 610,
+    maxPayloadTons: 23.0,
     basePrice: 185000,
     fuelTankCapacityL: 624,
     baseFuelConsumptionL100: 112,
@@ -242,6 +263,7 @@ const TRUCK_MODELS = [
     modelName: "Mercedes eActros 600 LongHaul",
     engineType: "electric",
     enginePowerHp: 600,
+    maxPayloadTons: 24.0,
     basePrice: 192000,
     fuelTankCapacityL: 600,
     baseFuelConsumptionL100: 98,
@@ -255,6 +277,7 @@ const TRUCK_MODELS = [
     modelName: "MAN eTGX 480kWh Heavy Trans",
     engineType: "electric",
     enginePowerHp: 544,
+    maxPayloadTons: 23.2,
     basePrice: 168000,
     fuelTankCapacityL: 480,
     baseFuelConsumptionL100: 102,
@@ -268,6 +291,7 @@ const TRUCK_MODELS = [
     modelName: "Renault Trucks E-Tech T Diamond",
     engineType: "electric",
     enginePowerHp: 490,
+    maxPayloadTons: 22.8,
     basePrice: 162000,
     fuelTankCapacityL: 540,
     baseFuelConsumptionL100: 108,
@@ -277,35 +301,170 @@ const TRUCK_MODELS = [
   }
 ];
 
-const TRUCK_TUNING_CATALOG = [
+// Реалистичные ветки тюнинга с умеренными прибавками
+const TRUCK_TUNING_BRANCHES = [
   {
-    id: "tune-ecu",
-    name: "Чип-тюнинг ECU (Stage 1)",
-    cost: 4500,
-    consumptionModifier: -0.06,
-    powerBonusHp: 35,
-    desc: "-6% к базовому расходу топлива/энергии"
+    id: "ecu",
+    name: "Калибровка ЭБУ (ECU)",
+    icon: "💻",
+    description: "Оптимизация карт впрыска топлива и наддува турбокомпрессора.",
+    stages: [
+      {
+        stage: 1,
+        title: "Stage 1: Eco-Flash",
+        cost: 3200,
+        powerBonusHp: 20, // +20 л.с.
+        payloadBonusTons: 0,
+        consumptionModifier: -0.04, // -4% расхода
+        brakesWearModifier: 0,
+        tankBonus: 0,
+        desc: "+20 л.с. мощности и сглаженная кривая момента (-4% расхода топлива)"
+      },
+      {
+        stage: 2,
+        title: "Stage 2: Heavy-Torque",
+        cost: 6500,
+        powerBonusHp: 45, // +45 л.с.
+        payloadBonusTons: 0.5, // +0.5 т за счет тяги на низах
+        consumptionModifier: 0.03, // +3% к расходу
+        brakesWearModifier: 0,
+        tankBonus: 0,
+        desc: "+45 л.с., +0.5 т к тяге на затяжных подъемах (+3% к расходу)"
+      },
+      {
+        stage: 3,
+        title: "Stage 3: High-Boost Master",
+        cost: 11800,
+        powerBonusHp: 75, // +75 л.с. (предел безопасного тюнинга для магистрального тягача)
+        payloadBonusTons: 1.0,
+        consumptionModifier: 0.08, // +8% к расходу
+        brakesWearModifier: 0,
+        tankBonus: 0,
+        desc: "+75 л.с. пиковой отдачи, +1.0 т к запасу тяги (+8% к расходу)"
+      }
+    ]
   },
   {
-    id: "tune-aero",
-    name: "Аэродинамический обвес & Спойлеры",
-    cost: 3200,
-    consumptionModifier: -0.04,
-    powerBonusHp: 0,
-    desc: "-4% к сопротивлению воздуха на автобанах"
+    id: "aero",
+    name: "Шасси & Подвеска",
+    icon: "🏗️",
+    description: "Усиление рессор, осей и пневмобаллонов для распределения осевой нагрузки.",
+    stages: [
+      {
+        stage: 1,
+        title: "Stage 1: Усиленные амортизаторы",
+        cost: 2800,
+        powerBonusHp: 0,
+        payloadBonusTons: 0.6, // +600 кг
+        consumptionModifier: -0.02,
+        brakesWearModifier: 0,
+        tankBonus: 0,
+        desc: "+0.6 т к допустимой массе и лучшая устойчивость состава"
+      },
+      {
+        stage: 2,
+        title: "Stage 2: Пневмобаллоны Heavy Load",
+        cost: 5400,
+        powerBonusHp: 0,
+        payloadBonusTons: 1.4, // +1.4 т
+        consumptionModifier: -0.04,
+        brakesWearModifier: 0,
+        tankBonus: 0,
+        desc: "+1.4 т к грузоподъемности и защита подвески от пробоев"
+      },
+      {
+        stage: 3,
+        title: "Stage 3: Спец-комплект усиления рамы",
+        cost: 8900,
+        powerBonusHp: 0,
+        payloadBonusTons: 2.5, // +2.5 т
+        consumptionModifier: -0.05,
+        brakesWearModifier: 0,
+        tankBonus: 0,
+        desc: "+2.5 т к полезной нагрузке и усиленные узлы крепления седла"
+      }
+    ]
   },
   {
-    id: "tune-tanks",
-    name: "Увеличенные топливные баки (+200л)",
-    cost: 2800,
-    tankBonus: 200,
-    desc: "+200 литров к запасу хода без остановок"
+    id: "tanks",
+    name: "Топливная система / Бак",
+    icon: "🛢️",
+    description: "Дополнительные секции баков и энергоячеек без критического перевеса тягача.",
+    stages: [
+      {
+        stage: 1,
+        title: "Stage 1: Дополнительная секция (+100)",
+        cost: 2200,
+        powerBonusHp: 0,
+        payloadBonusTons: 0,
+        consumptionModifier: 0,
+        brakesWearModifier: 0,
+        tankBonus: 100,
+        desc: "+100 л/кВт⋅ч к автономному запасу хода"
+      },
+      {
+        stage: 2,
+        title: "Stage 2: Сдвоенные алюминиевые баки (+200)",
+        cost: 4400,
+        powerBonusHp: 0,
+        payloadBonusTons: 0,
+        consumptionModifier: 0,
+        brakesWearModifier: 0,
+        tankBonus: 200,
+        desc: "+200 л/кВт⋅ч запаса топлива/энергии"
+      },
+      {
+        stage: 3,
+        title: "Stage 3: Магистральный Long-Haul пакет (+350)",
+        cost: 7200,
+        powerBonusHp: 0,
+        payloadBonusTons: 0,
+        consumptionModifier: 0,
+        brakesWearModifier: 0,
+        tankBonus: 350,
+        desc: "+350 л/кВт⋅ч для проезда через всю Европу без частых заправок"
+      }
+    ]
   },
   {
-    id: "tune-retarder",
-    name: "Гидравлический ретардер Voith",
-    cost: 5800,
-    brakesWearModifier: -0.4,
-    desc: "Снижает износ тормозной системы на 40%"
+    id: "retarder",
+    name: "Тормозная система",
+    icon: "🛑",
+    description: "Вспомогательные гидравлические замедлители и термостойкие колодки.",
+    stages: [
+      {
+        stage: 1,
+        title: "Stage 1: Композитные колодки",
+        cost: 2600,
+        powerBonusHp: 0,
+        payloadBonusTons: 0,
+        consumptionModifier: 0,
+        brakesWearModifier: -0.20,
+        tankBonus: 0,
+        desc: "-20% износа тормозной системы на спусках"
+      },
+      {
+        stage: 2,
+        title: "Stage 2: Интегрированный интардер",
+        cost: 5200,
+        powerBonusHp: 0,
+        payloadBonusTons: 0,
+        consumptionModifier: 0,
+        brakesWearModifier: -0.38,
+        tankBonus: 0,
+        desc: "-38% износа колодок и дисков за счет гидрозамедления"
+      },
+      {
+        stage: 3,
+        title: "Stage 3: Voith Retarder Pro",
+        cost: 8800,
+        powerBonusHp: 0,
+        payloadBonusTons: 0,
+        consumptionModifier: 0,
+        brakesWearModifier: -0.55,
+        tankBonus: 0,
+        desc: "-55% износа тормозов и непрерывное торможение без перегрева"
+      }
+    ]
   }
 ];

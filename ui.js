@@ -1,5 +1,5 @@
 const AppUI = {
-  currentTab: "dashboard",
+  currentTab: "office_hub",
 
   init() {
     this.ensureToastViewport();
@@ -24,16 +24,16 @@ const AppUI = {
     window.alert = (msg) => {
       let type = "info";
       const text = String(msg);
-      if (text.includes("⚠️") || text.includes("Недостаточно") || text.includes("Нельзя") || text.includes("Ошибка") || text.includes("СРЫВ")) {
+      if (text.includes("⚠️") || text.includes("Недостаточно") || text.includes("Нельзя") || text.includes("Ошибка") || text.includes("СРЫВ") || text.includes("🚫")) {
         type = "error";
-      } else if (text.includes("успешно") || text.includes("зачислен") || text.includes("поставлен") || text.includes("Начислено")) {
+      } else if (text.includes("успешно") || text.includes("зачислен") || text.includes("поставлен") || text.includes("Начислено") || text.includes("✓")) {
         type = "success";
       }
       this.showToast(text, type);
     };
   },
 
-  showToast(message, type = "info", durationMs = 3800) {
+  showToast(message, type = "info", durationMs = 2600) {
     this.ensureToastViewport();
     const container = document.getElementById("app-toast-container");
     if (!container) return;
@@ -45,6 +45,7 @@ const AppUI = {
       error: "🚫"
     };
 
+    // Создаем мини-тост, накладывающийся в сетку поверх предыдущего
     const bubble = document.createElement("div");
     bubble.className = `toast-bubble ${type}`;
     bubble.innerHTML = `
@@ -58,7 +59,7 @@ const AppUI = {
       bubble.classList.add("toast-out");
       setTimeout(() => {
         if (bubble.parentNode) bubble.remove();
-      }, 260);
+      }, 160);
     }, durationMs);
   },
 
@@ -83,36 +84,95 @@ const AppUI = {
   },
 
   switchTab(tabId) {
-      this.currentTab = tabId;
+    if (tabId === "dashboard") {
+      this.currentTab = "office_hub";
+      this.applyTabSwitchDOM("office_hub");
+      if (typeof AppOfficeHub !== "undefined") AppOfficeHub.setSubTab("dashboard");
+      return;
+    }
+    if (tabId === "licenses") {
+      this.currentTab = "office_hub";
+      this.applyTabSwitchDOM("office_hub");
+      if (typeof AppOfficeHub !== "undefined") AppOfficeHub.setSubTab("licenses");
+      return;
+    }
+    if (tabId === "finances") {
+      this.currentTab = "office_hub";
+      this.applyTabSwitchDOM("office_hub");
+      if (typeof AppOfficeHub !== "undefined") AppOfficeHub.setSubTab("finance_products");
+      return;
+    }
+    if (tabId === "analytics") {
+      this.currentTab = "office_hub";
+      this.applyTabSwitchDOM("office_hub");
+      if (typeof AppOfficeHub !== "undefined") AppOfficeHub.setSubTab("achievements");
+      return;
+    }
 
-      document.querySelectorAll(".tab-view").forEach(view => {
-        view.classList.toggle("active", view.id === `view-${tabId}`);
-      });
+    if (tabId === "fleet" || tabId === "garage") {
+      this.currentTab = "garage_hub";
+      this.applyTabSwitchDOM("garage_hub");
+      if (typeof AppGarage !== "undefined") AppGarage.renderGarageView();
+      return;
+    }
 
-      document.querySelectorAll(".nav-item, .tabbar-item").forEach(item => {
-        const isActive = item.getAttribute("data-tab") === tabId;
-        item.classList.toggle("active", isActive);
+    if (tabId === "dealership") {
+      this.currentTab = "market_hub";
+      this.applyTabSwitchDOM("market_hub");
+      if (typeof AppMarketHub !== "undefined") AppMarketHub.setSubTab("dealership");
+      return;
+    }
+    if (tabId === "drivers_market") {
+      this.currentTab = "market_hub";
+      this.applyTabSwitchDOM("market_hub");
+      if (typeof AppMarketHub !== "undefined") AppMarketHub.setSubTab("hr");
+      return;
+    }
+    if (tabId === "market") {
+      this.currentTab = "market_hub";
+      this.applyTabSwitchDOM("market_hub");
+      if (typeof AppMarketHub !== "undefined") AppMarketHub.setSubTab("used_fuel");
+      return;
+    }
 
-        // Автоматически центрируем выбранную вкладку в мобильном таббаре
-        if (isActive && item.classList.contains("tabbar-item")) {
-          item.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
-        }
-      });
+    if (tabId === "drivers") {
+      this.currentTab = "office_hub";
+      this.applyTabSwitchDOM("office_hub");
+      if (typeof AppOfficeHub !== "undefined") AppOfficeHub.setSubTab("drivers");
+      return;
+    }
+    if (tabId === "contracts") {
+      this.currentTab = "office_hub";
+      this.applyTabSwitchDOM("office_hub");
+      if (typeof AppOfficeHub !== "undefined") AppOfficeHub.setSubTab("contracts");
+      return;
+    }
 
-      if (tabId === "dashboard") this.renderDashboard();
-      if (tabId === "orders" && typeof AppOrders !== "undefined") AppOrders.renderOrdersView();
-      if (tabId === "trips" && typeof AppTrips !== "undefined") AppTrips.renderTripsView();
-      if (tabId === "fleet" && typeof AppTrucks !== "undefined") AppTrucks.renderFleetView();
-      if (tabId === "dealership" && typeof AppDealership !== "undefined") AppDealership.renderDealershipView();
-      if (tabId === "drivers" && typeof AppDrivers !== "undefined") AppDrivers.renderDriversView();
-      if (tabId === "drivers_market" && typeof AppDrivers !== "undefined") AppDrivers.renderMarketTab();
-      if (tabId === "garage" && typeof AppGarage !== "undefined") AppGarage.renderGarageView();
-      if (tabId === "finances" && typeof AppFinance !== "undefined") AppFinance.renderFinanceView();
-      if (tabId === "contracts" && typeof AppContracts !== "undefined") AppContracts.renderContractsView();
-      if (tabId === "market" && typeof AppMarket !== "undefined") AppMarket.renderMarketView();
-      if (tabId === "company" && typeof AppCompany !== "undefined") AppCompany.renderCompanyView();
-      if (tabId === "analytics" && typeof AppAnalytics !== "undefined") AppAnalytics.renderAnalyticsView();
-    },
+    this.currentTab = tabId;
+    this.applyTabSwitchDOM(tabId);
+
+    if (tabId === "office_hub" && typeof AppOfficeHub !== "undefined") AppOfficeHub.renderView();
+    if (tabId === "orders" && typeof AppOrders !== "undefined") AppOrders.renderOrdersView();
+    if (tabId === "trips" && typeof AppTrips !== "undefined") AppTrips.renderTripsView();
+    if (tabId === "garage_hub" && typeof AppGarage !== "undefined") AppGarage.renderGarageView();
+    if (tabId === "market_hub" && typeof AppMarketHub !== "undefined") AppMarketHub.renderView();
+    if (tabId === "company" && typeof AppCompany !== "undefined") AppCompany.renderCompanyView();
+  },
+
+  applyTabSwitchDOM(tabId) {
+    document.querySelectorAll(".tab-view").forEach(view => {
+      view.classList.toggle("active", view.id === `view-${tabId}`);
+    });
+
+    document.querySelectorAll(".nav-item, .tabbar-item").forEach(item => {
+      const isActive = item.getAttribute("data-tab") === tabId;
+      item.classList.toggle("active", isActive);
+
+      if (isActive && item.classList.contains("tabbar-item")) {
+        item.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+      }
+    });
+  },
 
   updateTimeControlsUI(activeSpeed) {
     document.querySelectorAll(".time-speed-btn").forEach(btn => {
@@ -165,18 +225,18 @@ const AppUI = {
   closeSheet() {
     const backdrop = document.getElementById("app-sheet-backdrop");
     if (backdrop) backdrop.classList.remove("active");
+    if (typeof AppTrips !== "undefined") {
+      AppTrips.currentModalTripId = null;
+    }
   },
 
   openMoreMenuSheet() {
     const html = `
       <div style="display: flex; flex-direction: column; gap: 8px;">
-        <button class="btn-glass" onclick="AppUI.switchTab('dealership'); AppUI.closeSheet();">🚛 Автосалон техники</button>
-        <button class="btn-glass" onclick="AppUI.switchTab('drivers_market'); AppUI.closeSheet();">👨‍✈️ Биржа найма водителей</button>
-        <button class="btn-glass" onclick="AppUI.switchTab('contracts'); AppUI.closeSheet();">📜 B2B Контракты & Тендеры</button>
-        <button class="btn-glass" onclick="AppUI.switchTab('garage'); AppUI.closeSheet();">🏭 База и Гараж</button>
-        <button class="btn-glass" onclick="AppUI.switchTab('market'); AppUI.closeSheet();">⛽ Рынок дизеля & Б/У сток</button>
-        <button class="btn-glass" onclick="AppUI.switchTab('company'); AppUI.closeSheet();">🏛️ Филиалы & Доля рынка</button>
-        <button class="btn-glass" onclick="AppUI.switchTab('analytics'); AppUI.closeSheet();">📊 Аналитика & KPI</button>
+        <button class="btn-glass" onclick="AppUI.switchTab('office_hub'); AppUI.closeSheet();">🏢 Главный офис</button>
+        <button class="btn-glass" onclick="AppUI.switchTab('garage_hub'); AppUI.closeSheet();">🏭 Гараж & Флот</button>
+        <button class="btn-glass" onclick="AppUI.switchTab('market_hub'); AppUI.closeSheet();">🛍️ Рынок & Закупки</button>
+        <button class="btn-glass" onclick="AppUI.switchTab('company'); AppUI.closeSheet();">🏛️ Филиалы & Сеть</button>
         <button class="btn-glass" onclick="AppDebug.openConsoleModal(); AppUI.closeSheet();" style="color: var(--accent-orange);">🛠️ Консоль отладки</button>
         <button class="btn-glass" onclick="AppStorage.reset();" style="color: var(--accent-red);">Сброс игры</button>
       </div>
@@ -198,101 +258,18 @@ const AppUI = {
   },
 
   renderDashboard() {
-    const s = AppState.get();
-
-    const balanceEl = document.getElementById("stat-balance");
-    if (balanceEl) balanceEl.innerText = `€${Math.round(s.finances.balance).toLocaleString()}`;
-
-    const netEl = document.getElementById("stat-daily-net");
-    if (netEl) {
-      netEl.innerText = `${s.finances.dailyNet >= 0 ? '+' : ''}€${Math.round(s.finances.dailyNet).toLocaleString()} / день`;
+    if (this.currentTab === "office_hub" && typeof AppOfficeHub !== "undefined" && AppOfficeHub.currentSubTab === "dashboard") {
+      AppOfficeHub.renderView();
     }
-
-    const revEl = document.getElementById("stat-revenue");
-    if (revEl) revEl.innerText = `€${Math.round(s.finances.todayRevenue).toLocaleString()}`;
-
-    const expEl = document.getElementById("stat-expenses");
-    if (expEl) expEl.innerText = `€${Math.round(s.finances.todayExpenses).toLocaleString()}`;
-
-    const fleetSlotsEl = document.getElementById("stat-fleet-slots");
-    if (fleetSlotsEl) fleetSlotsEl.innerText = `${s.trucks.length} / ${s.garage.slots}`;
-
-    const repEl = document.getElementById("stat-reputation");
-    if (repEl) repEl.innerText = `${s.company.reputation} / 100`;
-
-    const activeTripsCount = s.trips ? s.trips.length : 0;
-    const utilization = s.trucks.length > 0 ? Math.round((activeTripsCount / s.trucks.length) * 100) : 0;
-    const utilEl = document.getElementById("stat-utilization");
-    if (utilEl) utilEl.innerText = `Загрузка: ${utilization}%`;
-
-    const badgeTrips = document.getElementById("badge-active-trips");
-    if (badgeTrips) badgeTrips.innerText = activeTripsCount;
-
-    const activeTripsList = document.getElementById("dashboard-active-trips-list");
-    if (activeTripsList) {
-      if (activeTripsCount === 0) {
-        activeTripsList.innerHTML = `
-          <div class="empty-state-card">
-            <div class="empty-icon">🚛</div>
-            <div class="empty-title">Нет техники в рейсах</div>
-            <p class="empty-desc">Все доступные тягачи стоят на базе. Заключите контракт на бирже заказов.</p>
-            <button class="btn-glass primary small" onclick="AppUI.switchTab('orders')">Перейти к заказам</button>
-          </div>
-        `;
-      } else {
-        activeTripsList.innerHTML = s.trips.map(trip => `
-          <div class="alert-fleet-item" style="cursor: pointer;" onclick="AppUI.switchTab('trips')">
-            <div class="alert-fleet-info">
-              <span class="alert-fleet-title">${trip.originCity} ➔ ${trip.destinationCity}</span>
-              <span class="alert-fleet-desc">${trip.cargoName} | Прогресс: ${trip.progressPercent}% (${Math.round(trip.remainingDistanceKm)} км)</span>
-            </div>
-            <span class="badge" style="color: var(--accent-blue);">В пути</span>
-          </div>
-        `).join('');
-      }
-    }
-
-    const fleetStatusList = document.getElementById("dashboard-fleet-status-list");
-    if (fleetStatusList) {
-      fleetStatusList.innerHTML = s.trucks.map(truck => {
-        const avgHealth = AppTrucks.calculateAverageHealth(truck);
-        return `
-          <div class="alert-fleet-item">
-            <div class="alert-fleet-info">
-              <span class="alert-fleet-title">${truck.model}</span>
-              <span class="alert-fleet-desc">${truck.engineType === 'electric' ? 'Батарея' : 'Бак'}: ${Math.round(truck.fuelCurrentL)} / ${truck.fuelTankL} | Состояние: ${avgHealth}%</span>
-            </div>
-            <button class="btn-glass small" onclick="AppUI.showTruckDetails('${truck.id}')">Инфо</button>
-          </div>
-        `;
-      }).join('');
-    }
-  },
-
-  showTruckDetails(truckId) {
-    const truck = AppState.get().trucks.find(t => t.id === truckId);
-    if (!truck) return;
-
-    const html = `
-      <div style="display: flex; flex-direction: column; gap: 12px;">
-        <div style="font-weight: 700; font-size: 1.1rem;">${truck.model} (${truck.year})</div>
-        <div><strong>Тип привода:</strong> ${truck.engineType === 'electric' ? '⚡ Электрический' : '⛽ Дизельный'}</div>
-        <div><strong>Пробег:</strong> ${truck.mileageKm.toLocaleString()} км</div>
-        <div><strong>Расход:</strong> ${truck.avgConsumptionL100} ${truck.engineType === 'electric' ? 'кВт/100' : 'л/100'}</div>
-        <div><strong>Запас:</strong> ${Math.round(truck.fuelCurrentL)} / ${truck.fuelTankL}</div>
-        <hr style="border: 0; border-top: 1px solid var(--glass-border);">
-        <div style="font-weight: 600;">Состояние узлов:</div>
-        <div>Двигатель: ${Math.round(truck.components.engine)}%</div>
-        <div>Трансмиссия: ${Math.round(truck.components.transmission)}%</div>
-        <div>Тормоза: ${Math.round(truck.components.brakes)}%</div>
-        <div>Шины: ${Math.round(truck.components.tires)}%</div>
-      </div>
-    `;
-    this.openSheet("Карточка техники", html);
   },
 
   renderAll() {
     this.renderTimeAndBalance();
-    this.renderDashboard();
+    if (this.currentTab === "office_hub" && typeof AppOfficeHub !== "undefined") AppOfficeHub.renderView();
+    if (this.currentTab === "orders" && typeof AppOrders !== "undefined") AppOrders.renderOrdersView();
+    if (this.currentTab === "trips" && typeof AppTrips !== "undefined") AppTrips.renderTripsView();
+    if (this.currentTab === "garage_hub" && typeof AppGarage !== "undefined") AppGarage.renderGarageView();
+    if (this.currentTab === "market_hub" && typeof AppMarketHub !== "undefined") AppMarketHub.renderView();
+    if (this.currentTab === "company" && typeof AppCompany !== "undefined") AppCompany.renderCompanyView();
   }
 };

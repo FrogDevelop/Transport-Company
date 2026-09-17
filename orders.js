@@ -1,10 +1,12 @@
 const AppOrders = {
+  selectedLicenseCategory: null,
   DIESEL_PRICE_PER_LITER: 1.68,
+  TRUCK_CRUISE_SPEED_KMH: 75,
 
   init() {
     const s = AppState.get();
     if (!s.availableOrders || s.availableOrders.length === 0) {
-      this.generateOrdersBatch(4);
+      this.generateAllCategoriesOrders();
     }
     this.renderOrdersView();
   },
@@ -12,119 +14,403 @@ const AppOrders = {
   getRouteData(originId, destinationId) {
     const key1 = `${originId}-${destinationId}`;
     const key2 = `${destinationId}-${originId}`;
-    if (ROUTE_DISTANCES[key1]) return ROUTE_DISTANCES[key1];
-    if (ROUTE_DISTANCES[key2]) return ROUTE_DISTANCES[key2];
-    return { distanceKm: 450, tollCost: 65 };
+    if (typeof ROUTE_DISTANCES !== "undefined") {
+      if (ROUTE_DISTANCES[key1]) return ROUTE_DISTANCES[key1];
+      if (ROUTE_DISTANCES[key2]) return ROUTE_DISTANCES[key2];
+    }
+
+    const cityA = (typeof CITIES_CATALOG !== "undefined") ? CITIES_CATALOG.find(c => c.id === originId) : null;
+    const cityB = (typeof CITIES_CATALOG !== "undefined") ? CITIES_CATALOG.find(c => c.id === destinationId) : null;
+
+    if (!cityA || !cityB) {
+      return { distanceKm: 480, tollCost: 75 };
+    }
+
+    const R = 6371;
+    const dLat = (cityB.lat - cityA.lat) * (Math.PI / 180);
+    const dLon = (cityB.lon - cityA.lon) * (Math.PI / 180);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(cityA.lat * (Math.PI / 180)) * Math.cos(cityB.lat * (Math.PI / 180)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const straightKm = R * c;
+
+    const distanceKm = Math.max(140, Math.round(straightKm * 1.28));
+    const avgTollRate = ((cityA.tollRatePerKm || 0.2) + (cityB.tollRatePerKm || 0.2)) / 2;
+    const tollCost = Math.round(distanceKm * avgTollRate * 0.7);
+
+    return { distanceKm, tollCost };
   },
 
-  generateOrdersBatch(count = 4) {
+  estimateTripDurationMinutes(distanceKm, truckSpeedKmh = 75) {
+    const hours = distanceKm / truckSpeedKmh;
+    return Math.round(hours * 60);
+  },
+
+  formatDuration(minutes) {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return `${h > 0 ? h + 'ч ' : ''}${m}м`;
+  },
+
+  generateAllCategoriesOrders() {
     const s = AppState.get();
-    const newOrders = [];
+    const licenses = (typeof CARGO_LICENSES !== "undefined") ? CARGO_LICENSES : [];
+    const generated = [];
+
+    licenses.forEach(lic => {
+      const batch = this.generateOrdersForCategory(lic.id, 4);
+      generated.push(...batch);
+    });
+
+    s.availableOrders = generated;
+    AppStorage.save(s);
+  },
+
+  generateOrdersForCategory(licenseId, count = 4) {
+    const s = AppState.get();
+    const newBatch = [];
     const activeSeason = typeof AppMarket !== "undefined" ? AppMarket.getCurrentSeason() : null;
+    const cities = (typeof CITIES_CATALOG !== "undefined") ? CITIES_CATALOG : [];
+    const allCargo = (typeof CARGO_CATALOG !== "undefined") ? CARGO_CATALOG : [];
+    const matchingCargo = allCargo.filter(c => c.requiredLicense === licenseId);
+    if (matchingCargo.length === 0 || cities.length < 2) return [];
 
     for (let i = 0; i < count; i++) {
-      const origin = CITIES_CATALOG[Math.floor(Math.random() * CITIES_CATALOG.length)];
-      let destination = CITIES_CATALOG[Math.floor(Math.random() * CITIES_CATALOG.length)];
+      const origin = cities[Math.floor(Math.random() * cities.length)];
+      let destination = cities[Math.floor(Math.random() * cities.length)];
       while (destination.id === origin.id) {
-        destination = CITIES_CATALOG[Math.floor(Math.random() * CITIES_CATALOG.length)];
+        destination = cities[Math.floor(Math.random() * cities.length)];
       }
 
-      const eligibleCargo = CARGO_CATALOG.filter(c => s.company.reputation >= c.minReputation);
-      const cargo = eligibleCargo[Math.floor(Math.random() * eligibleCargo.length)] || CARGO_CATALOG[0];
+      const cargo = matchingCargo[Math.floor(Math.random() * matchingCargo.length)];
       const route = this.getRouteData(origin.id, destination.id);
-      const weightTons = Math.floor(Math.random() * 12) + 10;
 
-      let kmRate = cargo.basePricePerKmTon;
+      const minWeight = cargo.weightRange ? cargo.weightRange[0] : 14;
+      const maxWeight = cargo.weightRange ? cargo.weightRange[1] : 24;
+      const weightTons = Math.round((minWeight + Math.random() * (maxWeight - minWeight)) * 10) / 10;
+
+      let minPowerHp = cargo.minPowerHp || 460;
+      if (weightTons > 26) minPowerHp = Math.max(minPowerHp, 540);
+
+      let kmRate = cargo.basePricePerKmTon || 0.2;
       if (activeSeason && cargo.requiredTrailerType === activeSeason.bonusCargoType) {
-        kmRate *= activeSeason.bonusMultiplier;
+        kmRate *= (activeSeason.bonusMultiplier || 1.2);
       }
 
-      const hasWarehouse = s.warehouses && s.warehouses.some(w => w.cityName === origin.name);
-      if (hasWarehouse) {
+      const isHomeCity = s.garage && origin.name === s.garage.city;
+      if (isHomeCity && s.garage.hasCrossDockTerminal) {
+        kmRate *= 1.08;
+      }
+
+      if (s.warehouses && s.warehouses.some(w => w.cityName === origin.name)) {
         kmRate *= 1.20;
       }
 
       const basePay = route.distanceKm * weightTons * kmRate;
-      const reputationBonus = 1 + (s.company.reputation / 200);
+      const rep = (s.company && typeof s.company.reputation === "number") ? s.company.reputation : 0;
+      const reputationBonus = 1 + (rep / 200);
       const totalPayout = Math.round(basePay * reputationBonus);
 
-      newOrders.push({
-        id: "ord-" + Date.now().toString(36) + "-" + i,
+      const estimatedDurationMinutes = this.estimateTripDurationMinutes(route.distanceKm, this.TRUCK_CRUISE_SPEED_KMH);
+      const lifespan = Math.floor(Math.random() * 180) + 180;
+
+      newBatch.push({
+        id: "ord-" + Date.now().toString(36) + "-" + Math.random().toString(36).substr(2, 4),
         originCity: origin.name,
+        originId: origin.id,
         destinationCity: destination.name,
+        destinationId: destination.id,
         cargoId: cargo.id,
         cargoName: cargo.name,
-        cargoIcon: cargo.icon,
-        requiredTrailerType: cargo.requiredTrailerType,
+        cargoIcon: cargo.icon || "📦",
+        requiredTrailerType: cargo.requiredTrailerType || "curtainsider",
+        requiredLicense: cargo.requiredLicense,
         weightTons: weightTons,
+        minPowerHp: minPowerHp,
         distanceKm: route.distanceKm,
         tollCost: route.tollCost,
+        estimatedDurationMinutes: estimatedDurationMinutes,
         payout: totalPayout,
-        expiresInMinutes: 480
+        expiresInMinutes: lifespan,
+        initialLifespan: lifespan
       });
     }
 
-    s.availableOrders = newOrders;
-    AppStorage.save(s);
+    return newBatch;
   },
 
-  generateContractExpressOrder(contractId) {
+  tickOrderLifespans() {
     const s = AppState.get();
-    const contract = s.activeContracts.find(c => c.id === contractId);
-    if (!contract) return;
+    if (!s.availableOrders || s.availableOrders.length === 0) return;
 
-    const origin = CITIES_CATALOG[0];
-    const dest = CITIES_CATALOG[3];
-    const route = this.getRouteData(origin.id, dest.id);
+    let expiredAny = false;
+    const licenses = (typeof CARGO_LICENSES !== "undefined") ? CARGO_LICENSES : [];
 
-    const contractOrder = {
-      id: "ord-cnt-" + Date.now().toString(36),
-      contractId: contract.id,
-      originCity: origin.name,
-      destinationCity: dest.name,
-      cargoId: "cargo-contract",
-      cargoName: `Спецгруз [${contract.clientName}]`,
-      cargoIcon: contract.logoIcon,
-      requiredTrailerType: contract.requiredTrailerType,
-      weightTons: 18,
-      distanceKm: route.distanceKm,
-      tollCost: route.tollCost,
-      payout: contract.ratePerTrip,
-      expiresInMinutes: 720
-    };
+    s.availableOrders.forEach(o => {
+      if (typeof o.expiresInMinutes === "number") {
+        o.expiresInMinutes -= 1;
+        if (o.expiresInMinutes <= 0) expiredAny = true;
+      }
+    });
 
-    s.availableOrders.unshift(contractOrder);
-    AppStorage.save(s);
-    AppUI.switchTab("orders");
+    if (AppUI.currentTab === "orders") {
+      if (!this.selectedLicenseCategory) {
+        licenses.forEach(lic => {
+          const catOrders = s.availableOrders.filter(o => o.requiredLicense === lic.id && o.expiresInMinutes > 0);
+          const minRemaining = catOrders.length > 0 
+            ? Math.min(...catOrders.map(o => o.expiresInMinutes))
+            : 0;
+          const hours = Math.floor(minRemaining / 60);
+          const mins = minRemaining % 60;
+          const timerEl = document.getElementById(`terminal-timer-${lic.id}`);
+          if (timerEl) {
+            timerEl.innerText = `⏱ ${hours > 0 ? hours + 'ч ' : ''}${mins}м`;
+          }
+        });
+      } else {
+        s.availableOrders.forEach(o => {
+          if (o.requiredLicense === this.selectedLicenseCategory) {
+            const timerEl = document.getElementById(`order-timer-${o.id}`);
+            if (timerEl) {
+              const rem = Math.max(0, o.expiresInMinutes);
+              const hours = Math.floor(rem / 60);
+              const mins = rem % 60;
+              timerEl.innerText = `⏱ ${hours > 0 ? hours + 'ч ' : ''}${mins}м`;
+            }
+          }
+        });
+      }
+    }
+
+    if (expiredAny) {
+      s.availableOrders = s.availableOrders.filter(o => o.expiresInMinutes > 0);
+
+      licenses.forEach(lic => {
+        const countInCat = s.availableOrders.filter(o => o.requiredLicense === lic.id).length;
+        if (countInCat < 4) {
+          const needed = 4 - countInCat;
+          const fresh = this.generateOrdersForCategory(lic.id, needed);
+          s.availableOrders.push(...fresh);
+        }
+      });
+
+      AppStorage.save(s);
+      if (AppUI.currentTab === "orders") {
+        this.renderOrdersView(true);
+      }
+    }
+  },
+
+  openCategoryTerminal(licenseId) {
+    this.selectedLicenseCategory = licenseId;
     this.renderOrdersView();
   },
 
-  renderOrdersView() {
+  closeCategoryTerminal() {
+    this.selectedLicenseCategory = null;
+    this.renderOrdersView();
+  },
+
+  renderOrdersView(preserveScroll = false) {
     const s = AppState.get();
     const container = document.getElementById("view-orders");
     if (!container) return;
 
+    let savedScroll = 0;
+    const scrollParent = container.querySelector(".view-scroll-content") || container;
+    if (preserveScroll && scrollParent) {
+      savedScroll = scrollParent.scrollTop;
+    }
+
+    if (!s.availableOrders || s.availableOrders.length === 0) {
+      this.generateAllCategoriesOrders();
+    }
+
+    if (this.selectedLicenseCategory) {
+      this.renderCategoryOrdersViewHTML(container);
+    } else {
+      this.renderTerminalsOverviewHTML(container);
+    }
+
+    if (preserveScroll && scrollParent) {
+      const newScrollParent = container.querySelector(".view-scroll-content") || container;
+      if (newScrollParent) newScrollParent.scrollTop = savedScroll;
+    }
+  },
+
+  renderTerminalsOverviewHTML(container) {
+    const s = AppState.get();
+    const licenses = (typeof CARGO_LICENSES !== "undefined") ? CARGO_LICENSES : [];
+    const ownedLicenses = (s.company && Array.isArray(s.company.licenses)) ? s.company.licenses : ["lic_standard"];
+
     container.innerHTML = `
       <div class="view-scroll-content">
-        <div class="orders-filter-bar">
-          <div>
-            <h2 style="font-size: 1.3rem; font-weight: 700;">Биржа логистических заказов</h2>
-            <span style="font-size: 0.8rem; color: var(--text-muted);">Актуальные спотовые предложения Европы</span>
+        <div class="orders-viewport-wrapper">
+          <div class="orders-filter-bar" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <h2 style="font-size: 1.25rem; font-weight: 800; letter-spacing: -0.3px;">Логистические терминалы Европы</h2>
+              <span style="font-size: 0.76rem; color: var(--text-muted);">
+                30 городов сети • Реальный километраж автобанов • Авторотация заказов
+              </span>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <button class="btn-glass small" onclick="AppOrders.manualRefreshWithToast()">Запрос диспетчеру</button>
+              <button class="btn-glass small primary" onclick="AppUI.switchTab('office_hub'); AppOfficeHub.setSubTab('licenses');">Реестр лицензий</button>
+            </div>
           </div>
-          <button class="btn-glass small" onclick="AppOrders.refreshMarket()">Обновить биржу</button>
-        </div>
 
-        <div class="orders-grid">
-          ${s.availableOrders.map(order => this.generateOrderCardHTML(order)).join('')}
+          <div class="terminals-grid">
+            ${licenses.map(lic => {
+              const isOwned = ownedLicenses.includes(lic.id);
+              const categoryOrders = s.availableOrders.filter(o => o.requiredLicense === lic.id && o.expiresInMinutes > 0);
+              
+              const minRemaining = categoryOrders.length > 0 
+                ? Math.min(...categoryOrders.map(o => o.expiresInMinutes))
+                : 120;
+              const hours = Math.floor(minRemaining / 60);
+              const mins = minRemaining % 60;
+              const timerStr = `${hours > 0 ? hours + 'ч ' : ''}${mins}м`;
+
+              return `
+                <div class="terminal-card ${isOwned ? 'unlocked' : 'locked'}"
+                  ${isOwned ? `onclick="AppOrders.openCategoryTerminal('${lic.id}')"` : ''}>
+                  
+                  <div class="terminal-top-block">
+                    <div class="terminal-title">
+                      ${lic.icon} ${lic.name}
+                    </div>
+                    <div class="terminal-badge-row">
+                      <span class="terminal-badge ${isOwned ? 'active' : 'locked'}">
+                        ${isOwned ? `🟢 ${categoryOrders.length} лота` : '🔒 Закрыто'}
+                      </span>
+                    </div>
+                    <div class="terminal-desc">
+                      ${lic.desc}
+                    </div>
+                  </div>
+
+                  <div class="terminal-bottom-block">
+                    <div class="terminal-meta">
+                      <span>Тариф: <strong style="color: var(--accent-green);">~€${lic.avgRatePerKmTon.toFixed(2)}</strong></span>
+                      ${isOwned 
+                        ? `<span id="terminal-timer-${lic.id}" style="color: var(--accent-blue); font-weight: 600;">⏱ ${timerStr}</span>` 
+                        : `<span style="color: var(--accent-orange);">Нужна лицензия</span>`
+                      }
+                    </div>
+
+                    ${isOwned ? `
+                      <button class="btn-glass primary terminal-action-btn">
+                        Открыть контракты (${categoryOrders.length}) ➔
+                      </button>
+                    ` : `
+                      <button class="btn-glass terminal-action-btn" style="color: var(--accent-orange);" 
+                        onclick="event.stopPropagation(); AppUI.switchTab('office_hub'); AppOfficeHub.setSubTab('licenses');">
+                        Оформить допуск
+                      </button>
+                    `}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
         </div>
       </div>
     `;
   },
 
-  generateOrderCardHTML(order) {
+  renderCategoryOrdersViewHTML(container) {
     const s = AppState.get();
+    const lic = (typeof CARGO_LICENSES !== "undefined")
+      ? (CARGO_LICENSES.find(l => l.id === this.selectedLicenseCategory) || CARGO_LICENSES[0])
+      : { id: "lic_standard", name: "Стандарт", icon: "📦", desc: "" };
+
+    const categoryOrders = s.availableOrders.filter(o => o.requiredLicense === lic.id && o.expiresInMinutes > 0);
+
+    container.innerHTML = `
+      <div class="view-scroll-content">
+        <div class="orders-viewport-wrapper">
+          <div class="orders-filter-bar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <button class="btn-glass small" onclick="AppOrders.closeCategoryTerminal()">← Все терминалы</button>
+                <h2 style="font-size: 1.15rem; font-weight: 800;">${lic.icon} ${lic.name}</h2>
+              </div>
+              <span style="font-size: 0.76rem; color: var(--text-muted); margin-top: 3px; display: block;">
+                Свободных рейсов: <strong>${categoryOrders.length}</strong> • Нажмите на карточку для деталей
+              </span>
+            </div>
+
+            <button class="btn-glass small" onclick="AppOrders.refreshSelectedCategory()">Обновить слоты</button>
+          </div>
+
+          ${categoryOrders.length === 0 ? `
+            <div class="empty-state-card" style="padding: var(--space-6);">
+              <div style="font-size: 2rem; margin-bottom: 4px;">⏳</div>
+              <div style="font-weight: 700;">Все рейсы категории распределены</div>
+              <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 12px;">
+                Диспетчер подбирает новые грузы по Европе. Они появятся здесь автоматически.
+              </p>
+              <button class="btn-glass primary small" onclick="AppOrders.refreshSelectedCategory()">Запросить лоты вне очереди</button>
+            </div>
+          ` : `
+            <div class="terminals-grid">
+              ${categoryOrders.map(order => this.generateCompactOrderCardHTML(order)).join('')}
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  },
+
+  generateCompactOrderCardHTML(order) {
+    const tripDuration = this.formatDuration(order.estimatedDurationMinutes || this.estimateTripDurationMinutes(order.distanceKm));
+    const remainingMins = Math.max(0, order.expiresInMinutes || 180);
+    const hours = Math.floor(remainingMins / 60);
+    const mins = remainingMins % 60;
+    const timerLabel = `⏱ ${hours > 0 ? hours + 'ч ' : ''}${mins}м`;
+
+    return `
+      <div class="terminal-card unlocked" onclick="AppOrders.openOrderDetailModal('${order.id}')">
+        <div class="terminal-top-block">
+          <div class="terminal-title" style="font-size: 0.86rem;">
+            ${order.originCity} ➔ ${order.destinationCity}
+          </div>
+          <div class="terminal-badge-row">
+            <span class="terminal-badge active">
+              ${order.cargoIcon} ${order.cargoName}
+            </span>
+          </div>
+          <div style="font-size: 0.72rem; color: var(--text-secondary); margin: 5px 0 2px 0;">
+            Вес: <strong>${order.weightTons} т</strong> • <strong>${order.distanceKm} км</strong>
+          </div>
+        </div>
+
+        <div class="terminal-bottom-block" style="padding-top: 6px; margin-top: auto;">
+          <div class="terminal-meta" style="font-size: 0.68rem;">
+            <span style="color: var(--accent-blue); font-weight: 600;">~${tripDuration} пути</span>
+            <span id="order-timer-${order.id}" style="color: var(--text-muted);">${timerLabel}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2px;">
+            <span style="font-size: 0.68rem; color: var(--text-muted);">Выплата:</span>
+            <strong style="color: var(--accent-green); font-size: 0.88rem;">€${order.payout.toLocaleString()}</strong>
+          </div>
+          <button class="btn-glass primary terminal-action-btn" style="margin-top: 4px;">
+            Подробнее ➔
+          </button>
+        </div>
+      </div>
+    `;
+  },
+
+  openOrderDetailModal(orderId) {
+    const s = AppState.get();
+    const order = s.availableOrders.find(o => o.id === orderId);
+    if (!order) return;
+
     const fuelPrice = (s.market && s.market.currentDieselPrice) ? s.market.currentDieselPrice : 1.68;
-    const avgConsumption = 29;
+    const avgConsumption = 28.5;
     const fuelEstimatedL = (order.distanceKm / 100) * avgConsumption;
     const fuelCost = Math.round(fuelEstimatedL * fuelPrice);
     const wageCost = Math.round((order.distanceKm / 75) * 22);
@@ -139,103 +425,198 @@ const AppOrders = {
       flatbed: "Платформа"
     };
 
-    return `
-      <div class="glass-card order-card">
-        <div class="order-route-banner">
-          <div class="route-points">
-            <span>${order.originCity}</span>
-            <span class="route-arrow">➔</span>
-            <span>${order.destinationCity}</span>
+    const tripDuration = this.formatDuration(order.estimatedDurationMinutes || this.estimateTripDurationMinutes(order.distanceKm));
+
+    const html = `
+      <div style="display: flex; flex-direction: column; gap: var(--space-4);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 800;">${order.originCity} ➔ ${order.destinationCity}</h3>
+            <span style="font-size: 0.76rem; color: var(--text-muted);">
+              Груз: <strong>${order.cargoIcon} ${order.cargoName} (${order.weightTons} т)</strong>
+            </span>
           </div>
-          <div class="order-reward-tag">€${order.payout.toLocaleString()}</div>
+          <span class="badge" style="color: var(--accent-green); font-size: 0.95rem; font-weight: 800;">
+            €${order.payout.toLocaleString()}
+          </span>
         </div>
 
-        <div class="cargo-specs-grid">
-          <div class="spec-cell">
-            <span class="spec-title">Груз:</span>
-            <span class="spec-value">${order.cargoIcon} ${order.cargoName}</span>
-          </div>
-          <div class="spec-cell">
-            <span class="spec-title">Вес & Дистанция:</span>
-            <span class="spec-value">${order.weightTons} т / ${order.distanceKm} км</span>
-          </div>
-          <div class="spec-cell" style="grid-column: span 2;">
-            <span class="spec-title">Требование к полуприцепу:</span>
-            <div class="trailer-requirement-tag">📦 ${trailerTypeRu[order.requiredTrailerType] || order.requiredTrailerType}</div>
-          </div>
-        </div>
+        <table class="spec-detail-table">
+          <tr>
+            <td style="color: var(--text-muted);">Расстояние по автобанам:</td>
+            <td><strong>${order.distanceKm} км</strong></td>
+          </tr>
+          <tr>
+            <td style="color: var(--text-muted);">Расчетное время рейса (ETA):</td>
+            <td style="color: var(--accent-blue);"><strong>~${tripDuration}</strong> (при 75 км/ч)</td>
+          </tr>
+          <tr>
+            <td style="color: var(--text-muted);">Минимальная тяга мотора:</td>
+            <td style="color: var(--accent-orange);"><strong>от ${order.minPowerHp} л.с.</strong></td>
+          </tr>
+          <tr>
+            <td style="color: var(--text-muted);">Требуемый полуприцеп:</td>
+            <td>📦 ${trailerTypeRu[order.requiredTrailerType] || order.requiredTrailerType}</td>
+          </tr>
+        </table>
 
         <div class="order-margin-projection">
           <div class="margin-row">
-            <span>Топливо (дизель):</span>
+            <span>Топливо (расчет):</span>
             <span>-€${fuelCost}</span>
           </div>
           <div class="margin-row">
-            <span>Платные трассы & Износ:</span>
+            <span>Трассы & Амортизация:</span>
             <span>-€${order.tollCost + wearCost}</span>
           </div>
           <div class="margin-row">
-            <span>Оплата водителя:</span>
+            <span>Зарплата водителя:</span>
             <span>-€${wageCost}</span>
           </div>
           <div class="margin-row highlight">
-            <span>Прогнозируемая чистая прибыль:</span>
+            <span>Прогнозируемый чистый профит:</span>
             <span>€${netProfit.toLocaleString()} (${marginPercent}%)</span>
           </div>
         </div>
 
-        <button class="btn-glass primary" style="width: 100%;" onclick="AppOrders.openAssignFleetModal('${order.id}')">
-          Принять и назначить состав
+        <button class="btn-glass primary" style="width: 100%;" onclick="AppUI.closeSheet(); setTimeout(() => AppOrders.openAssignFleetModal('${order.id}'), 150);">
+          Назначить автопоезд на рейс
         </button>
       </div>
     `;
+
+    AppUI.openSheet("Спецификация логистического заказа", html);
   },
 
-  refreshMarket() {
-    this.generateOrdersBatch(4);
-    this.renderOrdersView();
+  manualRefreshWithToast() {
+    this.generateAllCategoriesOrders();
+    this.renderOrdersView(true);
+    AppUI.showToast("Диспетчерская служба обновила все направления перевозок!", "success");
   },
 
+  refreshSelectedCategory() {
+    if (!this.selectedLicenseCategory) return;
+    const s = AppState.get();
+    s.availableOrders = s.availableOrders.filter(o => o.requiredLicense !== this.selectedLicenseCategory);
+    const fresh = this.generateOrdersForCategory(this.selectedLicenseCategory, 4);
+    s.availableOrders.push(...fresh);
+    AppStorage.save(s);
+    this.renderOrdersView(true);
+    AppUI.showToast("Слоты направления обновлены!", "info");
+  },
+
+  // Выбор тягача: ТОЛЬКО СВОБОДНЫЕ (idle) ТЯГАЧИ В ВИДЕ АККУРАТНЫХ КАРТОЧЕК (2 В РЯД)
   openAssignFleetModal(orderId) {
     const s = AppState.get();
     const order = s.availableOrders.find(o => o.id === orderId);
     if (!order) return;
 
-    const availableTrucks = s.trucks.filter(t => t.status === 'idle');
+    // ФИЛЬТР: только свободные тягачи на базе (status === 'idle')
+    const availableIdleTrucks = (s.trucks || []).filter(t => t.status === "idle");
+    const busyTrucksCount = (s.trucks || []).length - availableIdleTrucks.length;
+
+    const tripDurationFormatted = this.formatDuration(order.estimatedDurationMinutes || this.estimateTripDurationMinutes(order.distanceKm));
 
     const html = `
-      <div style="display: flex; flex-direction: column; gap: var(--space-4);">
-        <div style="font-size: 0.85rem; color: var(--text-secondary);">
-          Рейс: <strong>${order.originCity} ➔ ${order.destinationCity}</strong> (${order.distanceKm} км)
+      <div style="display: flex; flex-direction: column; gap: var(--space-3); max-height: 78vh;">
+        <div>
+          <div style="font-size: 0.95rem; font-weight: 700;">${order.originCity} ➔ ${order.destinationCity}</div>
+          <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 2px;">
+            Груз: <strong>${order.cargoName} (${order.weightTons} т)</strong> • Плечо: <strong>${order.distanceKm} км</strong> (~${tripDurationFormatted})
+          </div>
         </div>
 
-        <div style="font-weight: 600; font-size: 0.9rem;">Выберите тягач для отправки:</div>
-        
-        ${availableTrucks.length === 0 ? `
-          <div class="empty-state-card" style="padding: var(--space-4);">
-            <p style="color: var(--accent-orange);">Нет свободных тягачей в гараже!</p>
+        ${availableIdleTrucks.length === 0 ? `
+          <div class="empty-state-card" style="padding: var(--space-5);">
+            <div style="font-size: 2.2rem; margin-bottom: 4px;">🚛</div>
+            <div style="font-weight: 700; font-size: 0.95rem; margin-bottom: 4px;">Нет свободных тягачей в гараже</div>
+            <p style="font-size: 0.76rem; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4;">
+              ${(s.trucks || []).length === 0 
+                ? 'В компании пока нет собственной техники. Приобретите тягач в автосалоне.' 
+                : `Все ваши машины (${busyTrucksCount}) сейчас заняты: выполняют рейсы, проходят ТО или заправляются.`
+              }
+            </p>
+            <div style="display: flex; gap: 8px; justify-content: center;">
+              <button class="btn-glass small" onclick="AppUI.closeSheet(); AppUI.switchTab('trips');">В рейсы</button>
+              <button class="btn-glass primary small" onclick="AppUI.closeSheet(); AppUI.switchTab('market_hub');">В салон</button>
+            </div>
           </div>
         ` : `
-          <div style="display: flex; flex-direction: column; gap: var(--space-2);">
-            ${availableTrucks.map(truck => {
-              const driver = s.drivers.find(d => d.id === truck.assignedDriverId);
+          <!-- Карточки свободных тягачей в 2 колонки -->
+          <div class="terminals-grid" style="padding-bottom: 10px; overflow-y: auto;">
+            ${availableIdleTrucks.map(rawTruck => {
+              const truck = (typeof AppTrucks !== "undefined")
+                ? AppTrucks.ensureTruckSpecs(rawTruck)
+                : rawTruck;
+
+              const driver = s.drivers ? s.drivers.find(d => d.id === truck.assignedDriverId) : null;
+              const currentHp = (typeof AppTrucks !== "undefined")
+                ? AppTrucks.getTruckCurrentPowerHp(truck)
+                : (truck.enginePowerHp || 480);
+              const currentPayload = (typeof AppTrucks !== "undefined")
+                ? AppTrucks.getTruckCurrentPayloadTons(truck)
+                : (truck.maxPayloadTons || 24.5);
+
+              const minStaminaThreshold = (s.garage && s.garage.hasDriverLounge) ? 15 : 25;
+
+              // Расход топлива
+              const ecoBonus = driver && driver.ecoDrivingSkill ? (driver.ecoDrivingSkill / 100) : 0.05;
+              const effConsumption = truck.avgConsumptionL100 * (1 - ecoBonus);
+              const fuelNeeded = Math.round((order.distanceKm / 100) * effConsumption);
+              const fuelCurrent = Math.round(truck.fuelCurrentL || 0);
+              const isFuelCompletelyEmpty = fuelCurrent < 15;
+              const isFuelShort = fuelCurrent < fuelNeeded;
+
               const hasDriver = !!driver;
-              const isRested = hasDriver && driver.stamina >= 25;
+              const isRested = hasDriver && (driver.stamina >= minStaminaThreshold);
+              const hasPower = currentHp >= order.minPowerHp;
+              const hasCapacity = currentPayload >= order.weightTons;
+
+              const canDispatch = hasDriver && isRested && hasPower && hasCapacity && !isFuelCompletelyEmpty;
+
+              let reason = "";
+              if (!hasDriver) reason = "Без водителя";
+              else if (!isRested) reason = `Шофер устал (<${minStaminaThreshold}%)`;
+              else if (isFuelCompletelyEmpty) reason = "Пустой бак (<15 л)";
+              else if (!hasCapacity) reason = `Шасси мало (${currentPayload}т < ${order.weightTons}т)`;
+              else if (!hasPower) reason = `Слабый мотор (${currentHp} < ${order.minPowerHp} л.с.)`;
 
               return `
-                <div class="glass-subgroup" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; border-radius: var(--radius-md);">
-                  <div>
-                    <div style="font-weight: 700;">${truck.model}</div>
-                    <div style="font-size: 0.78rem; color: var(--text-muted);">
-                      Водитель: ${driver ? driver.name : '<span style="color: var(--accent-red);">Не назначен</span>'}
-                      ${hasDriver ? `(Выносливость: ${Math.round(driver.stamina)}%)` : ''}
+                <div class="terminal-card unlocked" style="cursor: default; padding: 10px 11px;">
+                  <div class="terminal-top-block">
+                    <div class="terminal-title" style="font-size: 0.86rem;">
+                      ${truck.model}
+                    </div>
+                    <div class="terminal-badge-row">
+                      <span class="terminal-badge ${canDispatch ? 'active' : 'locked'}">
+                        ${canDispatch ? 'Готов к выезду' : reason}
+                      </span>
+                    </div>
+
+                    <div style="font-size: 0.7rem; color: var(--text-secondary); margin: 4px 0 2px 0;">
+                      ⚡ <strong>${currentHp} л.с.</strong> • До <strong>${currentPayload} т</strong>
+                    </div>
+
+                    <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 1px;">
+                      ⛽ Бак: <strong style="color: ${isFuelCompletelyEmpty ? 'var(--accent-red)' : (isFuelShort ? 'var(--accent-orange)' : 'var(--accent-green)')};">${fuelCurrent} л</strong> / ~${fuelNeeded} л
+                      ${isFuelShort && !isFuelCompletelyEmpty ? `<div style="color: var(--accent-orange); font-size: 0.64rem;">(Дозаправка на трассе)</div>` : ''}
+                    </div>
+
+                    <div style="font-size: 0.7rem; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                      ${driver 
+                        ? `<span style="color: var(--accent-blue); font-weight: 600;">👨‍✈️ ${driver.name.split(' ')[0]} (${Math.round(driver.stamina)}%)</span>` 
+                        : '<span style="color: var(--accent-orange);">Водитель не назначен</span>'
+                      }
                     </div>
                   </div>
-                  <button class="btn-glass small primary" 
-                    ${(!hasDriver || !isRested) ? 'disabled' : ''} 
-                    onclick="AppOrders.dispatchTrip('${order.id}', '${truck.id}')">
-                    Отправить
-                  </button>
+
+                  <div class="terminal-bottom-block" style="padding-top: 5px; margin-top: 6px;">
+                    <button class="btn-glass primary terminal-action-btn" 
+                      ${!canDispatch ? 'disabled' : ''} 
+                      onclick="AppOrders.dispatchTrip('${order.id}', '${truck.id}')">
+                      ${canDispatch ? 'Выбрать тягач ➔' : 'Недоступен'}
+                    </button>
+                  </div>
                 </div>
               `;
             }).join('')}
@@ -243,18 +624,59 @@ const AppOrders = {
         `}
       </div>
     `;
-    AppUI.openSheet("Диспетчерская отправка", html);
+
+    AppUI.openSheet("Выбор автопоезда на рейс", html);
   },
 
   dispatchTrip(orderId, truckId) {
     const s = AppState.get();
     const orderIndex = s.availableOrders.findIndex(o => o.id === orderId);
-    const truck = s.trucks.find(t => t.id === truckId);
-    if (orderIndex === -1 || !truck) return;
+    const rawTruck = s.trucks.find(t => t.id === truckId);
+    if (orderIndex === -1 || !rawTruck) return;
+
+    const truck = (typeof AppTrucks !== "undefined")
+      ? AppTrucks.ensureTruckSpecs(rawTruck)
+      : rawTruck;
 
     const order = s.availableOrders[orderIndex];
     const driver = s.drivers.find(d => d.id === truck.assignedDriverId);
     if (!driver) return;
+
+    if (truck.fuelCurrentL < 15) {
+      AppUI.showToast("Нельзя отправить тягач с пустым баком! Заправьте его на базе или в гараже.", "error");
+      return;
+    }
+
+    const companyLicenses = (s.company && s.company.licenses) ? s.company.licenses : ["lic_standard"];
+    if (!companyLicenses.includes(order.requiredLicense)) {
+      AppUI.showToast("У вашей компании нет соответствующей лицензии на этот тип груза!", "error");
+      return;
+    }
+
+    const currentHp = (typeof AppTrucks !== "undefined")
+      ? AppTrucks.getTruckCurrentPowerHp(truck)
+      : (truck.enginePowerHp || 480);
+    const currentPayload = (typeof AppTrucks !== "undefined")
+      ? AppTrucks.getTruckCurrentPayloadTons(truck)
+      : (truck.maxPayloadTons || 24.5);
+
+    if (currentPayload < order.weightTons) {
+      AppUI.showToast(`Перегруз! Груз весит ${order.weightTons} т, а шасси тягача рассчитано максимум на ${currentPayload} т.`, "error");
+      return;
+    }
+
+    if (currentHp < order.minPowerHp) {
+      AppUI.showToast(`Недостаточно тяги! Требуется минимум ${order.minPowerHp} л.с., у тягача ${currentHp} л.с.`, "error");
+      return;
+    }
+
+    const hpToWeightRatio = currentHp / (order.weightTons + 14);
+    let truckSpeedKmh = 75;
+    if (hpToWeightRatio > 16) truckSpeedKmh = 80;
+    else if (hpToWeightRatio < 12) truckSpeedKmh = 70;
+
+    const totalDistance = order.distanceKm;
+    const initialEstimatedMinutes = Math.round((totalDistance / truckSpeedKmh) * 60);
 
     const newTrip = {
       id: "trp-" + Date.now().toString(36),
@@ -263,14 +685,18 @@ const AppOrders = {
       originCity: order.originCity,
       destinationCity: order.destinationCity,
       cargoName: order.cargoName,
+      cargoIcon: order.cargoIcon || "📦",
       weightTons: order.weightTons,
-      totalDistanceKm: order.distanceKm,
-      remainingDistanceKm: order.distanceKm,
+      totalDistanceKm: totalDistance,
+      remainingDistanceKm: totalDistance,
       tollCost: order.tollCost,
       payout: order.payout,
       truckId: truck.id,
       driverId: driver.id,
+      truckSpeedKmh: truckSpeedKmh,
+      estimatedMinutesRemaining: initialEstimatedMinutes,
       status: "active",
+      refuelStopRemainingMinutes: 0,
       progressPercent: 0
     };
 
@@ -283,8 +709,12 @@ const AppOrders = {
     AppStorage.save(s);
     AppUI.closeSheet();
     AppUI.renderAll();
-    AppTrucks.renderFleetView();
-    AppDrivers.renderDriversView();
-    this.renderOrdersView();
+    
+    if (typeof AppGarage !== "undefined" && AppUI.currentTab === "garage_hub") {
+      AppGarage.renderGarageView();
+    }
+    this.renderOrdersView(true);
+
+    AppUI.showToast(`Автопоезд ${truck.model} с грузом «${order.cargoName}» выехал в ${order.destinationCity} (ETA: ~${this.formatDuration(initialEstimatedMinutes)})!`, "success");
   }
 };

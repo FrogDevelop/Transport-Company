@@ -39,11 +39,12 @@ const AppMarket = {
     AppStorage.save(s);
   },
 
-  refreshUsedMarket() {
+  refreshUsedMarket(count = 8) {
     const s = AppState.get();
     const generated = [];
 
-    for (let i = 0; i < 4; i++) {
+    // Генерируем 8 слотов (было 4 + 4 новых)
+    for (let i = 0; i < count; i++) {
       const template = TRUCK_MODELS[Math.floor(Math.random() * TRUCK_MODELS.length)];
       const mileage = Math.floor(Math.random() * 450000) + 120000;
       const ageYears = Math.floor(Math.random() * 6) + 2;
@@ -89,10 +90,14 @@ const AppMarket = {
   },
 
   renderMarketView() {
-    const s = AppState.get();
+    if (typeof AppMarketHub !== "undefined" && AppUI.currentTab === "market_hub") {
+      AppMarketHub.renderView();
+      return;
+    }
     const container = document.getElementById("view-market");
     if (!container) return;
 
+    const s = AppState.get();
     const season = this.getCurrentSeason();
     const isPriceUp = s.market.currentDieselPrice >= s.market.previousDieselPrice;
 
@@ -126,64 +131,103 @@ const AppMarket = {
             <div class="fuel-trend-tag ${isPriceUp ? 'up' : 'down'}">
               ${isPriceUp ? '▲ Рост котировки' : '▼ Снижение цены'}
             </div>
-            ${s.garage.hasFuelStation ? `
-              <div class="badge" style="color: var(--accent-green); background: rgba(48, 209, 88, 0.12);">
-                Оптовая цена базы: €${(s.market.currentDieselPrice * 0.82).toFixed(2)}/л
-              </div>
-            ` : ''}
           </div>
         </div>
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4);">
           <h3 style="font-size: 1.1rem; font-weight: 700;">Вторичный рынок тягачей (Used Fleet)</h3>
-          <button class="btn-glass small" onclick="AppMarket.refreshUsedMarket(); AppMarket.renderMarketView();">Обновить предложения</button>
+          <button class="btn-glass small" onclick="AppMarket.refreshUsedMarket(8); AppMarket.renderMarketView();">Обновить предложения</button>
         </div>
 
-        <div class="used-trucks-grid">
-          ${s.market.usedTrucksMarket.map(truck => this.generateUsedCardHTML(truck)).join('')}
+        <div class="market-trucks-compact-grid">
+          ${s.market.usedTrucksMarket.map(truck => this.generateCompactUsedCardHTML(truck)).join('')}
         </div>
       </div>
     `;
   },
 
-  generateUsedCardHTML(truck) {
+  generateCompactUsedCardHTML(truck) {
+    const avgHealth = Math.round(Object.values(truck.components).reduce((a, b) => a + b, 0) / 7);
+
     return `
-      <div class="glass-card used-truck-card">
-        <div class="truck-card-header">
-          <div class="truck-identity">
-            <span class="truck-model-title">${truck.model}</span>
-            <span class="truck-sub-info">${truck.year} г.в. | ${truck.mileageKm.toLocaleString()} км</span>
+      <div class="truck-mini-card" onclick="AppMarket.openUsedTruckDetailModal('${truck.id}')">
+        <div class="mini-card-top">
+          <span class="mini-card-model">${truck.model}</span>
+          <span class="mini-card-badge used">
+            ${avgHealth}% сост.
+          </span>
+        </div>
+
+        <div class="mini-card-meta">
+          <span>${truck.year} г.</span>
+          <span>${Math.round(truck.mileageKm / 1000)}k км</span>
+        </div>
+
+        <div class="mini-card-price-row">
+          <span class="mini-card-old-price">€${truck.originalPrice.toLocaleString()}</span>
+          <div class="mini-card-price">€${truck.purchasePrice.toLocaleString()}</div>
+        </div>
+      </div>
+    `;
+  },
+
+  openUsedTruckDetailModal(truckId) {
+    const s = AppState.get();
+    const truck = s.market.usedTrucksMarket.find(t => t.id === truckId);
+    if (!truck) return;
+
+    const avgHealth = Math.round(Object.values(truck.components).reduce((a, b) => a + b, 0) / 7);
+    const availableSlots = s.garage.slots - s.trucks.length;
+    const canAfford = s.finances.balance >= truck.purchasePrice;
+    const canBuy = canAfford && availableSlots > 0;
+
+    const html = `
+      <div style="display: flex; flex-direction: column; gap: var(--space-4);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 2px;">${truck.model} (${truck.year} г.в.)</h3>
+            <span style="font-size: 0.78rem; color: var(--text-muted);">${truck.brand} • Пробег: ${truck.mileageKm.toLocaleString()} км</span>
           </div>
-          <span class="badge" style="color: var(--accent-blue);">Б/У Сток</span>
+          <span class="badge" style="color: var(--accent-orange);">Б/У Сток</span>
         </div>
 
-        <div class="used-history-tag">
-          <span class="history-pill ${truck.accidentsCount > 0 ? 'warn' : ''}">
-            ${truck.accidentsCount === 0 ? '✓ Без ДТП' : `⚠️ ДТП в истории: ${truck.accidentsCount}`}
+        <div style="display: flex; gap: var(--space-2);">
+          <span class="badge" style="color: ${truck.accidentsCount === 0 ? 'var(--accent-green)' : 'var(--accent-orange)'};">
+            ${truck.accidentsCount === 0 ? '✓ Без ДТП' : `⚠️ ДТП: ${truck.accidentsCount}`}
           </span>
-          <span class="history-pill">
-            ${truck.hasServiceHistory ? '✓ Сервисная книжка' : 'История ТО отсутствует'}
+          <span class="badge">
+            ${truck.hasServiceHistory ? '✓ Сервисная книжка' : 'Без истории ТО'}
+          </span>
+          <span class="badge" style="color: var(--accent-blue);">
+            Здоровье: ${avgHealth}%
           </span>
         </div>
 
-        <div class="components-wear-grid">
+        <div class="components-wear-grid" style="margin: 4px 0;">
           ${AppTrucks.renderComponentMeter("Двигатель", truck.components.engine)}
           ${AppTrucks.renderComponentMeter("Коробка", truck.components.transmission)}
           ${AppTrucks.renderComponentMeter("Тормоза", truck.components.brakes)}
           ${AppTrucks.renderComponentMeter("Подвеска", truck.components.suspension)}
+          ${AppTrucks.renderComponentMeter("Шины", truck.components.tires)}
+          ${AppTrucks.renderComponentMeter("Электроника", truck.components.electronics)}
+          ${AppTrucks.renderComponentMeter("Охлаждение", truck.components.cooling)}
         </div>
 
-        <div class="used-pricing-row">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--glass-border); padding-top: 12px;">
           <div>
-            <div class="used-original-price">Новый: €${truck.originalPrice.toLocaleString()}</div>
-            <div class="used-deal-price">€${truck.purchasePrice.toLocaleString()}</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); text-decoration: line-through;">Новый: €${truck.originalPrice.toLocaleString()}</div>
+            <div style="font-size: 1.3rem; font-weight: 800; color: var(--accent-green);">€${truck.purchasePrice.toLocaleString()}</div>
           </div>
-          <button class="btn-glass primary small" onclick="AppMarket.buyUsedTruck('${truck.id}')">
-            Выкупить тягач
+          <button class="btn-glass primary" 
+            ${!canBuy ? 'disabled' : ''} 
+            onclick="AppMarket.buyUsedTruck('${truck.id}')">
+            ${availableSlots <= 0 ? 'Нет мест в гараже' : (!canAfford ? 'Недостаточно средств' : 'Выкупить тягач')}
           </button>
         </div>
       </div>
     `;
+
+    AppUI.openSheet("Диагностическая карта Б/У", html);
   },
 
   buyUsedTruck(usedTruckId) {
@@ -209,6 +253,7 @@ const AppMarket = {
       ...truck,
       id: "trk-u-" + Date.now().toString(36),
       status: "idle",
+      tuning: [],
       tco: { totalMaintenanceCost: 0, totalFuelCost: 0, totalKmDriven: 0, totalRevenueGenerated: 0 }
     };
 
@@ -216,8 +261,14 @@ const AppMarket = {
     s.market.usedTrucksMarket.splice(idx, 1);
 
     AppStorage.save(s);
+    AppUI.closeSheet();
     AppUI.renderAll();
-    this.renderMarketView();
+
+    if (typeof AppMarketHub !== "undefined" && AppUI.currentTab === "market_hub") {
+      AppMarketHub.renderView();
+    } else {
+      this.renderMarketView();
+    }
     alert(`Тягач ${importedTruck.model} успешно доставлен на базу компании!`);
   }
 };

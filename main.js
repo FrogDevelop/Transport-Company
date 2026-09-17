@@ -14,6 +14,8 @@ document.addEventListener("DOMContentLoaded", () => {
   AppFinance.init();
   AppContracts.init();
   AppMarket.init();
+  AppMarketHub.init();
+  AppOfficeHub.init();
   AppCompany.init();
   AppAnalytics.init();
   AppTime.init();

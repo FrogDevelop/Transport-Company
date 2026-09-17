@@ -41,19 +41,12 @@
       </div>
 
       <nav class="sidebar-menu">
-        <button class="nav-item active" data-tab="dashboard"><span>Дашборд</span></button>
+        <button class="nav-item active" data-tab="office_hub"><span>Главный офис</span></button>
         <button class="nav-item" data-tab="orders"><span>Биржа заказов</span></button>
         <button class="nav-item" data-tab="trips"><span>Рейсы & Карта GPS</span></button>
-        <button class="nav-item" data-tab="fleet"><span>Мой автопарк</span></button>
-        <button class="nav-item" data-tab="dealership"><span>Автосалон техники</span></button>
-        <button class="nav-item" data-tab="drivers"><span>Штат водителей</span></button>
-        <button class="nav-item" data-tab="drivers_market"><span>Биржа найма</span></button>
-        <button class="nav-item" data-tab="garage"><span>Гараж & База</span></button>
-        <button class="nav-item" data-tab="finances"><span>Финансы & P&L</span></button>
-        <button class="nav-item" data-tab="contracts"><span>B2B Контракты</span></button>
-        <button class="nav-item" data-tab="market"><span>Рынок & Дизель</span></button>
+        <button class="nav-item" data-tab="garage_hub"><span>Гараж & Флот</span></button>
+        <button class="nav-item" data-tab="market_hub"><span>Рынок & Закупки</span></button>
         <button class="nav-item" data-tab="company"><span>Компания & Сеть</span></button>
-        <button class="nav-item" data-tab="analytics"><span>Аналитика</span></button>
       </nav>
 
       <div class="sidebar-footer">
@@ -86,63 +79,12 @@
       </header>
 
       <main class="app-content-stage" id="tab-stage">
-        <section class="tab-view active" id="view-dashboard">
-          <div class="view-scroll-content">
-            <div class="stats-overview-grid">
-              <div class="glass-card stat-card primary">
-                <div class="card-label">Чистый баланс</div>
-                <div class="card-val" id="stat-balance">€100 000</div>
-                <div class="card-sub-val positive" id="stat-daily-net">+€0 / день</div>
-              </div>
-              <div class="glass-card stat-card">
-                <div class="card-label">Выручка (Сегодня)</div>
-                <div class="card-val" id="stat-revenue">€0</div>
-                <div class="card-sub-val neutral">Расходы: <span id="stat-expenses">€0</span></div>
-              </div>
-              <div class="glass-card stat-card">
-                <div class="card-label">Парк / Вместимость</div>
-                <div class="card-val" id="stat-fleet-slots">1 / 3</div>
-                <div class="card-sub-val" id="stat-utilization">Загрузка: 0%</div>
-              </div>
-              <div class="glass-card stat-card">
-                <div class="card-label">Репутация</div>
-                <div class="card-val highlight" id="stat-reputation">50 / 100</div>
-                <div class="card-sub-val neutral">Класс C</div>
-              </div>
-            </div>
-
-            <div class="dashboard-operational-grid">
-              <div class="glass-card operational-panel">
-                <div class="panel-header">
-                  <h3>Активные рейсы</h3>
-                  <span class="badge" id="badge-active-trips">0</span>
-                </div>
-                <div class="panel-body" id="dashboard-active-trips-list"></div>
-              </div>
-
-              <div class="glass-card operational-panel">
-                <div class="panel-header">
-                  <h3>Состояние техники</h3>
-                  <span class="badge warning" id="badge-fleet-alerts">Внимание</span>
-                </div>
-                <div class="panel-body" id="dashboard-fleet-status-list"></div>
-              </div>
-            </div>
-          </div>
-        </section>
-
+        <section class="tab-view active" id="view-office_hub"><div class="view-scroll-content"></div></section>
         <section class="tab-view" id="view-orders"><div class="view-scroll-content"></div></section>
         <section class="tab-view" id="view-trips"><div class="view-scroll-content"></div></section>
-        <section class="tab-view" id="view-fleet"><div class="view-scroll-content"></div></section>
-        <section class="tab-view" id="view-dealership"><div class="view-scroll-content"></div></section>
-        <section class="tab-view" id="view-drivers"><div class="view-scroll-content"></div></section>
-        <section class="tab-view" id="view-drivers_market"><div class="view-scroll-content"></div></section>
-        <section class="tab-view" id="view-garage"><div class="view-scroll-content"></div></section>
-        <section class="tab-view" id="view-finances"><div class="view-scroll-content"></div></section>
-        <section class="tab-view" id="view-contracts"><div class="view-scroll-content"></div></section>
-        <section class="tab-view" id="view-market"><div class="view-scroll-content"></div></section>
+        <section class="tab-view" id="view-garage_hub"><div class="view-scroll-content"></div></section>
+        <section class="tab-view" id="view-market_hub"><div class="view-scroll-content"></div></section>
         <section class="tab-view" id="view-company"><div class="view-scroll-content"></div></section>
-        <section class="tab-view" id="view-analytics"><div class="view-scroll-content"></div></section>
       </main>
 
       <div class="bottom-sheet-backdrop" id="app-sheet-backdrop">
@@ -157,11 +99,10 @@
       </div>
 
       <!-- Мобильный таббар -->
-<!-- Скроллящийся горизонтальный мобильный таббар -->
       <nav class="mobile-tabbar glass-bar" id="mobile-tabbar">
-        <button class="tabbar-item active" data-tab="dashboard">
-          <svg class="tabbar-icon" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
-          <span>Дашборд</span>
+        <button class="tabbar-item active" data-tab="office_hub">
+          <svg class="tabbar-icon" viewBox="0 0 24 24"><path d="M20 6h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-6 0h-4V4h4v2z"/></svg>
+          <span>Офис</span>
         </button>
 
         <button class="tabbar-item" data-tab="orders">
@@ -174,54 +115,19 @@
           <span>Рейсы</span>
         </button>
 
-        <button class="tabbar-item" data-tab="fleet">
-          <svg class="tabbar-icon" viewBox="0 0 24 24"><path d="M4 16c0 1.1.9 2 2 2h1v2a1 1 0 0 0 2 0v-2h6v2a1 1 0 0 0 2 0v-2h1c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v10zm2-8h12v4H6V8z"/></svg>
-          <span>Флот</span>
-        </button>
-
-        <button class="tabbar-item" data-tab="dealership">
-          <svg class="tabbar-icon" viewBox="0 0 24 24"><path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"/></svg>
-          <span>Автосалон</span>
-        </button>
-
-        <button class="tabbar-item" data-tab="drivers">
-          <svg class="tabbar-icon" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-          <span>Водители</span>
-        </button>
-
-        <button class="tabbar-item" data-tab="drivers_market">
-          <svg class="tabbar-icon" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 3s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
-          <span>Биржа HR</span>
-        </button>
-
-        <button class="tabbar-item" data-tab="garage">
+        <button class="tabbar-item" data-tab="garage_hub">
           <svg class="tabbar-icon" viewBox="0 0 24 24"><path d="M19 4H5c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.89-2-2-2zm0 14H5V8h14v10z"/></svg>
           <span>Гараж</span>
         </button>
 
-        <button class="tabbar-item" data-tab="finances">
-          <svg class="tabbar-icon" viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
-          <span>Финансы</span>
-        </button>
-
-        <button class="tabbar-item" data-tab="contracts">
-          <svg class="tabbar-icon" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
-          <span>Контракты</span>
-        </button>
-
-        <button class="tabbar-item" data-tab="market">
+        <button class="tabbar-item" data-tab="market_hub">
           <svg class="tabbar-icon" viewBox="0 0 24 24"><path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/></svg>
           <span>Рынок</span>
         </button>
 
         <button class="tabbar-item" data-tab="company">
           <svg class="tabbar-icon" viewBox="0 0 24 24"><path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/></svg>
-          <span>Филиалы</span>
-        </button>
-
-        <button class="tabbar-item" data-tab="analytics">
-          <svg class="tabbar-icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
-          <span>KPI</span>
+          <span>Сеть</span>
         </button>
       </nav>
     </div>
@@ -246,12 +152,15 @@
   <script src="finance.js"></script>
   <script src="contracts.js"></script>
   <script src="market.js"></script>
+  <script src="market_hub.js"></script>
+  <script src="office_hub.js"></script>
   <script src="competitors.js"></script>
   <script src="company.js"></script>
   <script src="analytics.js"></script>
   <script src="onboarding.js"></script>
   <script src="debug.js"></script>
   <script src="ui.js"></script>
+  <script src="data_warehouses.js"></script>
   <script src="main.js"></script>
 </body>
 </html>
