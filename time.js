@@ -31,22 +31,23 @@ const AppTime = {
     const s = AppState.get();
     s.time.currentMinute += 1;
 
-    // 1. Движение рейсов по автобанам
     if (typeof AppTrips !== "undefined") {
       AppTrips.tick();
     }
 
-    // 2. Таймеры лотов на бирже заказов
     if (typeof AppOrders !== "undefined") {
       AppOrders.tickOrderLifespans();
     }
 
-    // 3. Ротация B2B-тендеров на бирже контрактов
     if (typeof AppContracts !== "undefined") {
       AppContracts.tickTendersLifespan();
     }
 
-    // 4. Продвижение доставки бензовоза базы (3 фазы)
+    // Автоматическая проверка достижений каждую минуту игрового времени
+    if (typeof AppAchievements !== "undefined" && typeof AppAchievements.checkAndUnlockAll === "function") {
+      AppAchievements.checkAndUnlockAll();
+    }
+
     if (s.garage && s.garage.fuelStation && s.garage.fuelStation.delivery) {
       const d = s.garage.fuelStation.delivery;
       d.minutesRemainingInPhase -= 1;
@@ -80,7 +81,6 @@ const AppTime = {
       }
     }
 
-    // 5. Восстановление отдыхающих водителей
     if (s.drivers && s.drivers.length > 0) {
       const recoveryRate = (s.garage && s.garage.hasDriverLounge) ? 2.0 : 1.0;
       s.drivers.forEach(driver => {
@@ -90,7 +90,6 @@ const AppTime = {
       });
     }
 
-    // 6. Таймеры ремонта, тюнинга и заправки тягачей в гараже
     if (s.trucks && s.trucks.length > 0) {
       let anyWorkFinished = false;
 
@@ -98,7 +97,6 @@ const AppTime = {
         if ((truck.status === "maintenance" || truck.status === "tuning" || truck.status === "refueling") && truck.busyMinutesRemaining > 0) {
           truck.busyMinutesRemaining -= 1;
 
-          // Точечное обновление бейджа на карточке тягача в гараже
           const badgeEl = document.getElementById(`truck-status-badge-${truck.id}`);
           if (badgeEl) {
             let label = "";
@@ -108,7 +106,6 @@ const AppTime = {
             badgeEl.innerText = label;
           }
 
-          // Обновление в открытой модалке тягача
           const modalStatusText = document.getElementById(`modal-live-status-text-${truck.id}`);
           if (modalStatusText) {
             let desc = "";
@@ -140,14 +137,12 @@ const AppTime = {
       }
     }
 
-    // 7. Смена игровых суток (00:00)
     if (s.time.currentMinute >= 1440) {
       s.time.currentMinute = 0;
       s.time.currentDay += 1;
       this.onDayChanged();
     }
 
-    // 8. Накопление сборных грузов в распределительных центрах
     if (typeof AppCompany !== "undefined") {
       AppCompany.tickWarehouses();
     }
@@ -162,17 +157,49 @@ const AppTime = {
     if (typeof AppMarket !== "undefined") AppMarket.processDailyMarketTick();
     if (typeof AppContracts !== "undefined") AppContracts.processDailyContracts();
     if (typeof AppFinance !== "undefined") AppFinance.processDailyMidnightAccounting();
-    if (typeof AppCompany !== "undefined") {AppCompany.processDailyWarehouseSublease();}
+    if (typeof AppCompany !== "undefined") { AppCompany.processDailyWarehouseSublease(); }
+    
+    if (typeof AppInfrastructure !== "undefined") {
+      AppInfrastructure.processDailyInfrastructureIncome();
+    }
 
     let networkUpkeep = 0;
     if (s.branches) s.branches.forEach(b => networkUpkeep += b.dailyUpkeep);
     if (s.warehouses) s.warehouses.forEach(w => networkUpkeep += w.dailyUpkeep);
 
     const cost = s.garage.maintenanceCostDaily + networkUpkeep;
-    s.finances.balance -= s.garage.maintenanceCostDaily;
-    s.finances.todayExpenses = cost;
+    s.finances.balance -= cost;
+    s.finances.todayExpenses += cost;
+
+    const dailyProfit = s.finances.todayRevenue - s.finances.todayExpenses;
+    let taxToPay = 0;
+
+    if (dailyProfit > 5000) {
+      if (dailyProfit <= 20000) {
+        taxToPay = (dailyProfit - 5000) * 0.15;
+      } else {
+        taxToPay = (15000 * 0.15) + ((dailyProfit - 20000) * 0.30);
+      }
+    }
+
+    if (s.company && s.company.level >= 4) {
+      taxToPay *= 0.95; 
+    }
+    taxToPay = Math.round(taxToPay);
+
+    if (taxToPay > 0) {
+      s.finances.balance -= taxToPay;
+      s.finances.todayExpenses += taxToPay;
+      s.finances.totalSpent += taxToPay;
+      if (typeof AppUI !== "undefined") {
+        AppUI.showToast(`🏛 Удержан корпоративный налог: -€${taxToPay.toLocaleString()}`, "warning", 6000);
+      }
+    }
+
+    s.finances.dailyNet = s.finances.todayRevenue - s.finances.todayExpenses;
+
+    s.finances.todayExpenses = 0;
     s.finances.todayRevenue = 0;
-    s.finances.dailyNet = -cost;
 
     AppStorage.save(s);
   },

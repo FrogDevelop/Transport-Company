@@ -95,6 +95,8 @@ const AppOrders = {
       if (weightTons > 26) minPowerHp = Math.max(minPowerHp, 540);
 
       let kmRate = cargo.basePricePerKmTon || 0.2;
+      kmRate *= 0.65; // ФАЗА 1: Глобальный срез тарифов (-35% маржинальности)
+
       if (activeSeason && cargo.requiredTrailerType === activeSeason.bonusCargoType) {
         kmRate *= (activeSeason.bonusMultiplier || 1.2);
       }
@@ -125,7 +127,7 @@ const AppOrders = {
         cargoId: cargo.id,
         cargoName: cargo.name,
         cargoIcon: cargo.icon || "📦",
-        requiredTrailerType: cargo.requiredTrailerType || "curtainsider",
+        requiredTrailerType: cargo.requiredTrailerType,
         requiredLicense: cargo.requiredLicense,
         weightTons: weightTons,
         minPowerHp: minPowerHp,
@@ -279,7 +281,7 @@ const AppOrders = {
                   
                   <div class="terminal-top-block">
                     <div class="terminal-title">
-                      ${lic.icon} ${lic.name}
+                      ${lic.icon}${lic.name}
                     </div>
                     <div class="terminal-badge-row">
                       <span class="terminal-badge ${isOwned ? 'active' : 'locked'}">
@@ -293,8 +295,7 @@ const AppOrders = {
 
                   <div class="terminal-bottom-block">
                     <div class="terminal-meta">
-                      <span>Тариф: <strong style="color: var(--accent-green);">~€${lic.avgRatePerKmTon.toFixed(2)}</strong></span>
-                      ${isOwned 
+                      <span>Тариф: <strong style="color: var(--accent-green);">~€${lic.avgRatePerKmTon.toFixed(2)}</strong></span>${isOwned 
                         ? `<span id="terminal-timer-${lic.id}" style="color: var(--accent-blue); font-weight: 600;">⏱ ${timerStr}</span>` 
                         : `<span style="color: var(--accent-orange);">Нужна лицензия</span>`
                       }
@@ -420,7 +421,7 @@ const AppOrders = {
     const marginPercent = Math.round((netProfit / order.payout) * 100);
 
     const trailerTypeRu = {
-      curtainsider: "Тентованный",
+      curtainsider: "Тент",
       refrigerated: "Рефрижератор",
       flatbed: "Платформа"
     };
@@ -456,7 +457,7 @@ const AppOrders = {
           </tr>
           <tr>
             <td style="color: var(--text-muted);">Требуемый полуприцеп:</td>
-            <td>📦 ${trailerTypeRu[order.requiredTrailerType] || order.requiredTrailerType}</td>
+            <td style="color: var(--accent-blue); font-weight: 800;">📦 ${trailerTypeRu[order.requiredTrailerType]}</td>
           </tr>
         </table>
 
@@ -505,13 +506,11 @@ const AppOrders = {
     AppUI.showToast("Слоты направления обновлены!", "info");
   },
 
-  // Выбор тягача: ТОЛЬКО СВОБОДНЫЕ (idle) ТЯГАЧИ В ВИДЕ АККУРАТНЫХ КАРТОЧЕК (2 В РЯД)
   openAssignFleetModal(orderId) {
     const s = AppState.get();
     const order = s.availableOrders.find(o => o.id === orderId);
     if (!order) return;
 
-    // ФИЛЬТР: только свободные тягачи на базе (status === 'idle')
     const availableIdleTrucks = (s.trucks || []).filter(t => t.status === "idle");
     const busyTrucksCount = (s.trucks || []).length - availableIdleTrucks.length;
 
@@ -542,50 +541,57 @@ const AppOrders = {
             </div>
           </div>
         ` : `
-          <!-- Карточки свободных тягачей в 2 колонки -->
           <div class="terminals-grid" style="padding-bottom: 10px; overflow-y: auto;">
             ${availableIdleTrucks.map(rawTruck => {
-              const truck = (typeof AppTrucks !== "undefined")
-                ? AppTrucks.ensureTruckSpecs(rawTruck)
-                : rawTruck;
-
+              const truck = (typeof AppTrucks !== "undefined") ? AppTrucks.ensureTruckSpecs(rawTruck) : rawTruck;
               const driver = s.drivers ? s.drivers.find(d => d.id === truck.assignedDriverId) : null;
-              const currentHp = (typeof AppTrucks !== "undefined")
-                ? AppTrucks.getTruckCurrentPowerHp(truck)
-                : (truck.enginePowerHp || 480);
-              const currentPayload = (typeof AppTrucks !== "undefined")
-                ? AppTrucks.getTruckCurrentPayloadTons(truck)
-                : (truck.maxPayloadTons || 24.5);
+              const coDriver = truck.coDriverId ? s.drivers.find(d => d.id === truck.coDriverId) : null;
+              const trailer = truck.attachedTrailerId ? (s.trailers || []).find(t => t.id === truck.attachedTrailerId) : null;
+              
+              const currentHp = (typeof AppTrucks !== "undefined") ? AppTrucks.getTruckCurrentPowerHp(truck) : (truck.enginePowerHp || 480);
+              const currentPayload = (typeof AppTrucks !== "undefined") ? AppTrucks.getTruckCurrentPayloadTons(truck) : (truck.maxPayloadTons || 24.5);
 
               const minStaminaThreshold = (s.garage && s.garage.hasDriverLounge) ? 15 : 25;
-
-              // Расход топлива
               const ecoBonus = driver && driver.ecoDrivingSkill ? (driver.ecoDrivingSkill / 100) : 0.05;
-              const effConsumption = truck.avgConsumptionL100 * (1 - ecoBonus);
+              
+              let reeferPenalty = 1.0;
+              if (trailer && trailer.type === "refrigerated") reeferPenalty = 1.15;
+
+              const effConsumption = truck.avgConsumptionL100 * (1 - ecoBonus) * reeferPenalty;
               const fuelNeeded = Math.round((order.distanceKm / 100) * effConsumption);
               const fuelCurrent = Math.round(truck.fuelCurrentL || 0);
               const isFuelCompletelyEmpty = fuelCurrent < 15;
               const isFuelShort = fuelCurrent < fuelNeeded;
 
               const hasDriver = !!driver;
-              const isRested = hasDriver && (driver.stamina >= minStaminaThreshold);
+              const isRested = hasDriver && (driver.stamina >= minStaminaThreshold || (coDriver && coDriver.stamina >= minStaminaThreshold));
               const hasPower = currentHp >= order.minPowerHp;
               const hasCapacity = currentPayload >= order.weightTons;
+              const hasTrailer = !!trailer;
+              const isTrailerMatch = hasTrailer && trailer.type === order.requiredTrailerType;
 
-              const canDispatch = hasDriver && isRested && hasPower && hasCapacity && !isFuelCompletelyEmpty;
+              const canDispatch = hasDriver && isRested && hasPower && hasCapacity && !isFuelCompletelyEmpty && hasTrailer && isTrailerMatch;
 
               let reason = "";
               if (!hasDriver) reason = "Без водителя";
-              else if (!isRested) reason = `Шофер устал (<${minStaminaThreshold}%)`;
+              else if (!isRested) reason = `Экипаж истощен (<${minStaminaThreshold}%)`;
               else if (isFuelCompletelyEmpty) reason = "Пустой бак (<15 л)";
               else if (!hasCapacity) reason = `Шасси мало (${currentPayload}т < ${order.weightTons}т)`;
               else if (!hasPower) reason = `Слабый мотор (${currentHp} < ${order.minPowerHp} л.с.)`;
+              else if (!hasTrailer) reason = "Нет прицепа (Только голова)";
+              else if (!isTrailerMatch) reason = `Не тот прицеп (Нужен ${order.requiredTrailerType})`;
+
+              // ОПРЕДЕЛЕНИЕ СТИЛЯ ДЛЯ НАЗВАНИЯ ПРИЦЕПА (как в карточке флота)
+              const trailerHtml = trailer 
+                ? `<span style="color: var(--text-primary); font-weight: 600;">${trailer.icon} ${trailer.model}</span>` 
+                : '<span style="color: var(--accent-orange);">⚠️ Прицеп не выбран (Стоит на базе)</span>';
 
               return `
                 <div class="terminal-card unlocked" style="cursor: default; padding: 10px 11px;">
                   <div class="terminal-top-block">
-                    <div class="terminal-title" style="font-size: 0.86rem;">
-                      ${truck.model}
+                    <div class="terminal-title" style="font-size: 0.86rem; display: flex; justify-content: space-between;">
+                      <span>${truck.model}</span>
+                      ${coDriver ? '<span style="color: var(--accent-blue);" title="Парный экипаж">👥</span>' : ''}
                     </div>
                     <div class="terminal-badge-row">
                       <span class="terminal-badge ${canDispatch ? 'active' : 'locked'}">
@@ -594,15 +600,15 @@ const AppOrders = {
                     </div>
 
                     <div style="font-size: 0.7rem; color: var(--text-secondary); margin: 4px 0 2px 0;">
-                      ⚡ <strong>${currentHp} л.с.</strong> • До <strong>${currentPayload} т</strong>
+                      ⚡ <strong>${currentHp} л.с.</strong> • ⛽ Бак: <strong style="color: ${isFuelCompletelyEmpty ? 'var(--accent-red)' : (isFuelShort ? 'var(--accent-orange)' : 'var(--accent-green)')};">${fuelCurrent} л</strong>
                     </div>
 
-                    <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 1px;">
-                      ⛽ Бак: <strong style="color: ${isFuelCompletelyEmpty ? 'var(--accent-red)' : (isFuelShort ? 'var(--accent-orange)' : 'var(--accent-green)')};">${fuelCurrent} л</strong> / ~${fuelNeeded} л
-                      ${isFuelShort && !isFuelCompletelyEmpty ? `<div style="color: var(--accent-orange); font-size: 0.64rem;">(Дозаправка на трассе)</div>` : ''}
+                    <!-- Красивый блок информации о прицепе (как в информации о рейсе и флоте) -->
+                    <div style="font-size: 0.7rem; color: var(--text-primary); margin: 4px 0; border-top: 1px dashed var(--glass-border); border-bottom: 1px dashed var(--glass-border); padding: 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                      Сцепка: ${trailerHtml}
                     </div>
 
-                    <div style="font-size: 0.7rem; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    <div style="font-size: 0.7rem; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                       ${driver 
                         ? `<span style="color: var(--accent-blue); font-weight: 600;">👨‍✈️ ${driver.name.split(' ')[0]} (${Math.round(driver.stamina)}%)</span>` 
                         : '<span style="color: var(--accent-orange);">Водитель не назначен</span>'
@@ -614,7 +620,7 @@ const AppOrders = {
                     <button class="btn-glass primary terminal-action-btn" 
                       ${!canDispatch ? 'disabled' : ''} 
                       onclick="AppOrders.dispatchTrip('${order.id}', '${truck.id}')">
-                      ${canDispatch ? 'Выбрать тягач ➔' : 'Недоступен'}
+                      ${canDispatch ? 'Оформить путевой лист ➔' : 'Ограничение'}
                     </button>
                   </div>
                 </div>
@@ -634,41 +640,19 @@ const AppOrders = {
     const rawTruck = s.trucks.find(t => t.id === truckId);
     if (orderIndex === -1 || !rawTruck) return;
 
-    const truck = (typeof AppTrucks !== "undefined")
-      ? AppTrucks.ensureTruckSpecs(rawTruck)
-      : rawTruck;
-
+    const truck = (typeof AppTrucks !== "undefined") ? AppTrucks.ensureTruckSpecs(rawTruck) : rawTruck;
     const order = s.availableOrders[orderIndex];
     const driver = s.drivers.find(d => d.id === truck.assignedDriverId);
-    if (!driver) return;
+    const trailer = (s.trailers || []).find(tr => tr.id === truck.attachedTrailerId);
 
-    if (truck.fuelCurrentL < 15) {
-      AppUI.showToast("Нельзя отправить тягач с пустым баком! Заправьте его на базе или в гараже.", "error");
-      return;
-    }
+    if (!driver || !trailer) return;
+    if (trailer.type !== order.requiredTrailerType) return;
+    if (truck.fuelCurrentL < 15) return;
 
-    const companyLicenses = (s.company && s.company.licenses) ? s.company.licenses : ["lic_standard"];
-    if (!companyLicenses.includes(order.requiredLicense)) {
-      AppUI.showToast("У вашей компании нет соответствующей лицензии на этот тип груза!", "error");
-      return;
-    }
+    const currentHp = (typeof AppTrucks !== "undefined") ? AppTrucks.getTruckCurrentPowerHp(truck) : (truck.enginePowerHp || 480);
+    const currentPayload = (typeof AppTrucks !== "undefined") ? AppTrucks.getTrustCurrentPayloadTons ? AppTrucks.getTruckCurrentPayloadTons(truck) : (truck.maxPayloadTons || 24.5) : (truck.maxPayloadTons || 24.5);
 
-    const currentHp = (typeof AppTrucks !== "undefined")
-      ? AppTrucks.getTruckCurrentPowerHp(truck)
-      : (truck.enginePowerHp || 480);
-    const currentPayload = (typeof AppTrucks !== "undefined")
-      ? AppTrucks.getTruckCurrentPayloadTons(truck)
-      : (truck.maxPayloadTons || 24.5);
-
-    if (currentPayload < order.weightTons) {
-      AppUI.showToast(`Перегруз! Груз весит ${order.weightTons} т, а шасси тягача рассчитано максимум на ${currentPayload} т.`, "error");
-      return;
-    }
-
-    if (currentHp < order.minPowerHp) {
-      AppUI.showToast(`Недостаточно тяги! Требуется минимум ${order.minPowerHp} л.с., у тягача ${currentHp} л.с.`, "error");
-      return;
-    }
+    if (currentPayload < order.weightTons || currentHp < order.minPowerHp) return;
 
     const hpToWeightRatio = currentHp / (order.weightTons + 14);
     let truckSpeedKmh = 75;
@@ -692,7 +676,9 @@ const AppOrders = {
       tollCost: order.tollCost,
       payout: order.payout,
       truckId: truck.id,
-      driverId: driver.id,
+      trailerId: trailer.id,
+      driverId: truck.assignedDriverId,
+      coDriverId: truck.coDriverId || null,
       truckSpeedKmh: truckSpeedKmh,
       estimatedMinutesRemaining: initialEstimatedMinutes,
       status: "active",
@@ -701,7 +687,12 @@ const AppOrders = {
     };
 
     truck.status = "trip";
+    trailer.status = "trip";
     driver.status = "driving";
+    if (truck.coDriverId) {
+      const coDrv = s.drivers.find(d => d.id === truck.coDriverId);
+      if (coDrv) coDrv.status = "driving";
+    }
 
     s.trips.push(newTrip);
     s.availableOrders.splice(orderIndex, 1);
@@ -715,6 +706,6 @@ const AppOrders = {
     }
     this.renderOrdersView(true);
 
-    AppUI.showToast(`Автопоезд ${truck.model} с грузом «${order.cargoName}» выехал в ${order.destinationCity} (ETA: ~${this.formatDuration(initialEstimatedMinutes)})!`, "success");
+    AppUI.showToast(`Автопоезд ${truck.model} выехал в ${order.destinationCity} (ETA: ~${this.formatDuration(initialEstimatedMinutes)})!`, "success");
   }
 };

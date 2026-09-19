@@ -42,7 +42,7 @@ const AppMarketHub = {
 
         <div class="finance-nav-tabs" style="margin-bottom: var(--space-4);">
           <button class="fin-tab-btn ${this.currentSubTab === 'dealership' ? 'active' : ''}" onclick="AppMarketHub.setSubTab('dealership')">
-            🚛 Автосалон (Новые)
+            🚛 Автосалон
           </button>
           <button class="fin-tab-btn ${this.currentSubTab === 'used_fuel' ? 'active' : ''}" onclick="AppMarketHub.setSubTab('used_fuel')">
             ⛽ Дизель & Б/У парк (${s.market.usedTrucksMarket ? s.market.usedTrucksMarket.length : 0})
@@ -72,24 +72,37 @@ const AppMarketHub = {
     }
   },
 
-  // 1. Вкладка "Новые тягачи" (сетка 2 в ряд)
+  // 1. Вкладка "Новые тягачи и Прицепы" (сетка 2 в ряд)
   renderDealershipSection() {
-    let catalog = TRUCK_MODELS;
-    if (AppDealership.currentCategory !== "all") {
-      catalog = TRUCK_MODELS.filter(m => m.engineType === AppDealership.currentCategory);
+    let isTrailerMode = typeof AppDealership !== "undefined" && AppDealership.currentCategory === "trailers";
+    let catalog = [];
+
+    if (isTrailerMode) {
+      catalog = typeof TRAILER_MODELS !== "undefined" ? TRAILER_MODELS : [];
+    } else {
+      catalog = typeof TRUCK_MODELS !== "undefined" ? TRUCK_MODELS : [];
+      if (typeof AppDealership !== "undefined" && AppDealership.currentCategory !== "all") {
+        catalog = catalog.filter(m => m.engineType === AppDealership.currentCategory);
+      }
     }
+
+    const currentCat = typeof AppDealership !== "undefined" ? AppDealership.currentCategory : "all";
 
     return `
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3);">
-        <div class="fleet-filter-group">
-          <button class="fleet-filter-chip ${AppDealership.currentCategory === 'all' ? 'active' : ''}" onclick="AppDealership.currentCategory='all'; AppMarketHub.renderView();">Все (${TRUCK_MODELS.length})</button>
-          <button class="fleet-filter-chip ${AppDealership.currentCategory === 'diesel' ? 'active' : ''}" onclick="AppDealership.currentCategory='diesel'; AppMarketHub.renderView();">Дизель</button>
-          <button class="fleet-filter-chip ${AppDealership.currentCategory === 'electric' ? 'active' : ''}" onclick="AppDealership.currentCategory='electric'; AppMarketHub.renderView();">⚡ Электро</button>
+        <div class="fleet-filter-group" style="flex-wrap: wrap;">
+          <button class="fleet-filter-chip ${currentCat === 'all' ? 'active' : ''}" onclick="AppDealership.currentCategory='all'; AppMarketHub.renderView();">Все</button>
+          <button class="fleet-filter-chip ${currentCat === 'diesel' ? 'active' : ''}" onclick="AppDealership.currentCategory='diesel'; AppMarketHub.renderView();">Дизель</button>
+          <button class="fleet-filter-chip ${currentCat === 'electric' ? 'active' : ''}" onclick="AppDealership.currentCategory='electric'; AppMarketHub.renderView();">⚡ Электро</button>
+          <button class="fleet-filter-chip ${currentCat === 'trailers' ? 'active' : ''}" onclick="AppDealership.currentCategory='trailers'; AppMarketHub.renderView();">📦 Прицепы</button>
         </div>
       </div>
 
       <div class="market-trucks-compact-grid">
-        ${catalog.map(m => AppDealership.generateCompactModelCardHTML(m)).join('')}
+        ${catalog.map(m => isTrailerMode 
+          ? AppDealership.generateCompactTrailerCardHTML(m) 
+          : AppDealership.generateCompactModelCardHTML(m)
+        ).join('')}
       </div>
     `;
   },
@@ -133,14 +146,26 @@ const AppMarketHub = {
   },
 
   // 3. Вкладка "Биржа кадров"
-  renderHRSection() {
+renderHRSection() {
     const s = AppState.get();
+    const currentSpec = typeof AppOfficeHub !== "undefined" ? AppOfficeHub.getCurrentLevelSpec() : { maxDrivers: 3 };
+    if (!s.company) s.company = {};
+    const totalMaxDrivers = currentSpec.maxDrivers + (s.company.extraDriverSlots || 0);
+    const isFull = s.drivers.length >= totalMaxDrivers;
 
     return `
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3);">
-        <span style="font-size: 0.78rem; color: var(--text-muted);">Водители C+E с верифицированным стажем</span>
+        <span style="font-size: 0.78rem; color: var(--text-muted);">
+          Штат: <strong>${s.drivers.length} / ${totalMaxDrivers}</strong> мест занято
+        </span>
         <button class="btn-glass small" onclick="AppDrivers.generateCandidatesPool(6); AppMarketHub.renderView();">Обновить анкеты</button>
       </div>
+
+      ${isFull ? `
+        <div class="glass-subgroup" style="padding: 12px; margin-bottom: 12px; text-align: center; border-color: rgba(255, 159, 10, 0.4);">
+          <span style="font-size: 0.82rem; color: var(--accent-orange); font-weight: 700;">⚠️ Штат сотрудников полностью заполнен! Улучшите офис или купите дополнительный слот во вкладке «Водители».</span>
+        </div>
+      ` : ''}
 
       <div class="drivers-grid">
         ${s.marketDrivers.map(cand => `
@@ -149,7 +174,7 @@ const AppMarketHub = {
               <div class="driver-avatar-box">📑</div>
               <div class="driver-identity">
                 <span class="driver-name">${cand.name}</span>
-                <span class="driver-rank-sub">${cand.age} лет | Стаж: ${cand.experienceYears} лет | ★ ${cand.rating}</span>
+                <span class="driver-rank-sub">${cand.age} лет | Стаж: ${cand.experienceYears} лет \vert{} ★ ${cand.rating}</span>
               </div>
             </div>
 
@@ -169,11 +194,13 @@ const AppMarketHub = {
                 <span style="font-size: 0.72rem; color: var(--text-muted);">Бонус найма:</span>
                 <div style="font-weight: 700; color: var(--accent-orange);">€${cand.hiringBonus.toLocaleString()}</div>
               </div>
-              <button class="btn-glass primary small" onclick="AppDrivers.hireCandidate('${cand.id}'); AppMarketHub.renderView();">Подписать</button>
+              <button class="btn-glass primary small" ${isFull ? 'disabled' : ''} onclick="AppDrivers.hireCandidate('${cand.id}'); AppMarketHub.renderView();">
+                ${isFull ? 'Нет мест' : 'Подписать'}
+              </button>
             </div>
           </div>
         `).join('')}
       </div>
     `;
-  }
+  },
 };

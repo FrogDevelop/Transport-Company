@@ -1,5 +1,5 @@
 const AppOfficeHub = {
-  currentSubTab: "dashboard", // 'dashboard' | 'licenses' | 'drivers' | 'finance_products' | 'contracts' | 'achievements'
+  currentSubTab: "dashboard", // 'dashboard' | 'licenses' | 'drivers' | 'finance_products' | 'contracts' | 'achievements' | 'stock_market'
 
   OFFICE_LEVELS: [
     {
@@ -15,7 +15,7 @@ const AppOfficeHub = {
       level: 2,
       title: "Операционный офис",
       rankTitle: "Региональный экспедитор",
-      xpRequired: 700,
+      xpRequired: 2500,
       maxDrivers: 6,
       perks: "Штат до 6 водителей. Доступ к коммерческим кредитам. +3% к росту репутации.",
       desc: "Полноценный диспетчерский пункт. Позволяет расширить команду и привлечь первые заемные средства."
@@ -24,7 +24,7 @@ const AppOfficeHub = {
       level: 3,
       title: "Бизнес-центр филиала",
       rankTitle: "Национальный оператор",
-      xpRequired: 2400,
+      xpRequired: 12000,
       maxDrivers: 10,
       perks: "Штат до 10 водителей. Доступ к закрытым B2B тендерам и долгосрочным контрактам.",
       desc: "Престижный офис в деловом квартале. Открывает крупные регулярные контракты с заводами Европы."
@@ -33,7 +33,7 @@ const AppOfficeHub = {
       level: 4,
       title: "Корпоративный комплекс",
       rankTitle: "Международная группа",
-      xpRequired: 7000,
+      xpRequired: 45000,
       maxDrivers: 16,
       perks: "Штат до 16 водителей. Инвестиционные транши до €200k. Налоговая скидка -5%.",
       desc: "Штаб-квартира с юридическим отделом и собственной бухгалтерией. Снижает накладные издержки."
@@ -42,7 +42,7 @@ const AppOfficeHub = {
       level: 5,
       title: "Logix Headquarters Skyscraper",
       rankTitle: "Трансъевропейский синдикат",
-      xpRequired: 16000,
+      xpRequired: 200000,
       maxDrivers: 30,
       perks: "Штат до 30 водителей. Эксклюзивные контракты класса А, максимальное доверие банков.",
       desc: "Вершина транспортного бизнеса в Европе. Неограниченные возможности масштабирования флота."
@@ -80,7 +80,27 @@ const AppOfficeHub = {
 
   setSubTab(tab) {
     this.currentSubTab = tab;
-    this.renderView();
+    
+    // Бесшовное переключение вкладок без перерисовки всей страницы
+    const container = document.getElementById("view-office_hub");
+    if (container) {
+      const buttons = container.querySelectorAll(".finance-nav-tabs .fin-tab-btn");
+      buttons.forEach(btn => {
+        btn.classList.remove("active");
+        if (btn.getAttribute("onclick") && btn.getAttribute("onclick").includes(`'${tab}'`)) {
+          btn.classList.add("active");
+        }
+      });
+
+      const subcontentEl = document.getElementById("office-hub-subcontent");
+      if (subcontentEl) {
+        subcontentEl.innerHTML = this.renderSubContentHTML();
+      } else {
+        this.renderView();
+      }
+    } else {
+      this.renderView();
+    }
   },
 
   renderView() {
@@ -109,7 +129,6 @@ const AppOfficeHub = {
 
     container.innerHTML = `
       <div class="view-scroll-content">
-        <!-- Шапка штаб-квартиры компании -->
         <div class="glass-card" style="padding: var(--space-4); margin-bottom: var(--space-4);">
           <div class="market-header-bar" style="margin-bottom: 8px;">
             <div>
@@ -129,19 +148,17 @@ const AppOfficeHub = {
             </button>
           </div>
 
-          <!-- Полоса опыта -->
           <div style="margin-top: 4px;">
             <div class="garage-progress-bar-bg" style="height: 6px;">
               <div class="garage-progress-bar-fill" style="width: ${xpProgressPercent}%; background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));"></div>
             </div>
             <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted); margin-top: 4px;">
               <span>Опыт компании: <strong>${xpLabel}</strong></span>
-              <span>${nextSpec ? `До Ур. ${nextSpec.level}: ${xpProgressPercent}%` : 'Максимальный ранг'}</span>
+              <span>${nextSpec ? `До Ур. ${nextSpec.level}:${xpProgressPercent}%` : 'Максимальный ранг'}</span>
             </div>
           </div>
         </div>
 
-        <!-- Навигационные вкладки главного офиса -->
         <div class="finance-nav-tabs" style="margin-bottom: var(--space-4); overflow-x: auto;">
           <button class="fin-tab-btn ${this.currentSubTab === 'dashboard' ? 'active' : ''}" onclick="AppOfficeHub.setSubTab('dashboard')">
             📊 Сводка & KPI
@@ -150,7 +167,7 @@ const AppOfficeHub = {
             📜 Лицензии (${activeLicensesCount}/7)
           </button>
           <button class="fin-tab-btn ${this.currentSubTab === 'drivers' ? 'active' : ''}" onclick="AppOfficeHub.setSubTab('drivers')">
-            👨‍✈️ Водители (${s.drivers.length}/${currentSpec.maxDrivers})
+            👨‍✈️ Водители (${s.drivers.length}/${currentSpec.maxDrivers + (s.company.extraDriverSlots || 0)})
           </button>
           <button class="fin-tab-btn ${this.currentSubTab === 'finance_products' ? 'active' : ''}" onclick="AppOfficeHub.setSubTab('finance_products')">
             💳 Кредиты & Лизинг
@@ -161,9 +178,11 @@ const AppOfficeHub = {
           <button class="fin-tab-btn ${this.currentSubTab === 'achievements' ? 'active' : ''}" onclick="AppOfficeHub.setSubTab('achievements')">
             🏆 Достижения (${unlockedAchCount})
           </button>
+          <button class="fin-tab-btn ${this.currentSubTab === 'stock_market' ? 'active' : ''}" onclick="AppOfficeHub.setSubTab('stock_market')">
+            📈 Биржа & M&A
+          </button>
         </div>
 
-        <!-- Контейнер активного подраздела -->
         <div id="office-hub-subcontent">
           ${this.renderSubContentHTML()}
         </div>
@@ -190,7 +209,7 @@ const AppOfficeHub = {
               <div class="glass-subgroup" style="padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid ${isCurrent ? 'var(--accent-blue)' : (isUnlocked ? 'rgba(48, 209, 88, 0.3)' : 'var(--glass-border)')};">
                 <div style="display: flex; justify-content: space-between; align-items: baseline;">
                   <div style="font-weight: 700; font-size: 0.9rem;">
-                    Ур. ${lvl.level}: ${lvl.title}
+                    Ур. ${lvl.level}:${lvl.title}
                   </div>
                   <span class="badge ${isCurrent ? 'diesel' : (isUnlocked ? 'diesel' : 'used')}">
                     ${isCurrent ? '★ Текущий' : (isUnlocked ? 'Пройден' : `${lvl.xpRequired.toLocaleString()} XP`)}
@@ -228,6 +247,8 @@ const AppOfficeHub = {
         return this.renderContractsSubView();
       case "achievements":
         return this.renderAchievementsSubView();
+      case "stock_market":
+        return typeof AppCompetitors !== "undefined" ? AppCompetitors.renderStockMarketSubViewHTML() : '<div style="padding: 20px;">Модуль биржи загружается...</div>';
       default:
         return this.renderDashboardSubView();
     }
@@ -249,7 +270,7 @@ const AppOfficeHub = {
         <div class="glass-card stat-card">
           <div class="card-label">Выручка (Сегодня)</div>
           <div class="card-val" style="color: var(--accent-green);">+€${Math.round(s.finances.todayRevenue).toLocaleString()}</div>
-          <div class="card-sub-val neutral">Расходы дня: €${Math.round(s.finances.todayExpenses).toLocaleString()}</div>
+          <div class="card-sub-val neutral">Расходов дня: €${Math.round(s.finances.todayExpenses).toLocaleString()}</div>
         </div>
         <div class="glass-card stat-card">
           <div class="card-label">Парк / Вместимость</div>
@@ -261,6 +282,10 @@ const AppOfficeHub = {
           <div class="card-val highlight">★ ${s.company.reputation} / 100</div>
           <div class="card-sub-val neutral">${s.company.rank || 'Частный перевозчик'}</div>
         </div>
+      </div>
+
+      <div style="margin-bottom: var(--space-4);">
+        ${typeof AppAnalytics !== "undefined" ? AppAnalytics.renderFinancialAnalyticsHTML() : ''}
       </div>
 
       <div class="glass-card" style="padding: var(--space-4); margin-bottom: var(--space-4);">
@@ -295,14 +320,6 @@ const AppOfficeHub = {
             <td style="color: var(--accent-green);"><strong>${(s.statistics.totalCargoHauledTons || 0).toLocaleString()} тонн</strong></td>
           </tr>
           <tr>
-            <td style="color: var(--text-muted);">Потрачено на топливо и зарядку (оценка):</td>
-            <td style="color: var(--accent-orange);">€${Math.round((s.statistics.totalDistanceDrivenKm || 0) * 0.45).toLocaleString()}</td>
-          </tr>
-          <tr>
-            <td style="color: var(--text-muted);">Оплачено дорожных сборов (Toll):</td>
-            <td style="color: var(--accent-orange);">€${Math.round((s.statistics.totalDistanceDrivenKm || 0) * 0.14).toLocaleString()}</td>
-          </tr>
-          <tr>
             <td style="color: var(--text-muted);">Открытых лицензий допуска:</td>
             <td><strong style="color: var(--accent-blue);">${(s.company.licenses || ["lic_standard"]).length} из 7 категорий</strong></td>
           </tr>
@@ -322,16 +339,12 @@ const AppOfficeHub = {
         <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px;">
           <div>
             <h3 style="font-size: 1.05rem; font-weight: 700;">Реестр категорий допуска ЕС</h3>
-            <span style="font-size: 0.76rem; color: var(--text-muted);">
-              На бирже отображаются только заказы открытых категорий. Покупка лицензии сразу расширяет список заказов.
-            </span>
+            <span style="font-size: 0.76rem; color: var(--text-muted);">Покупка лицензии расширяет список доступных грузов на бирже.</span>
           </div>
-          <span class="badge" style="color: var(--accent-blue);">
-            Активно: ${activeLicenses.length} из ${licensesCatalog.length}
-          </span>
+          <span class="badge" style="color: var(--accent-blue);">Активно: ${activeLicenses.length} из ${licensesCatalog.length}</span>
         </div>
 
-        <div class="market-trucks-compact-grid">
+        <div class="terminals-grid">
           ${licensesCatalog.map(lic => {
             const isOwned = activeLicenses.includes(lic.id);
             const hasRep = rep >= lic.minReputation;
@@ -339,36 +352,25 @@ const AppOfficeHub = {
             const canBuy = !isOwned && hasRep && canAfford;
 
             return `
-              <div class="truck-mini-card" style="cursor: default; justify-content: space-between; border-color: ${isOwned ? 'rgba(48, 209, 88, 0.4)' : 'var(--glass-border)'};">
-                <div>
-                  <div class="mini-card-top">
-                    <span class="mini-card-model" style="-webkit-line-clamp: 1;">${lic.icon} ${lic.name}</span>
-                    <span class="mini-card-badge ${isOwned ? 'diesel' : 'used'}">
-                      ${isOwned ? '✓ Получена' : (hasRep ? 'Доступна' : `Реп. ${lic.minReputation}+`)}
-                    </span>
+              <div class="terminal-card unlocked" style="cursor: default; display: flex; flex-direction: column; justify-content: space-between; border-color: ${isOwned ? 'rgba(48, 209, 88, 0.4)' : 'var(--glass-border)'};">
+                <div class="terminal-top-block">
+                  <div class="terminal-title" style="font-size: 0.88rem;">${lic.icon}${lic.name}</div>
+                  <div class="terminal-badge-row">
+                    <span class="terminal-badge ${isOwned ? 'active' : 'locked'}">${isOwned ? '✓ Получена' : (hasRep ? 'Доступна' : `Реп. ${lic.minReputation}+`)}</span>
                   </div>
-
-                  <p style="font-size: 0.72rem; color: var(--text-secondary); line-height: 1.35; margin: 6px 0;">
-                    ${lic.desc}
-                  </p>
-                  <div style="font-size: 0.7rem; color: var(--accent-blue); margin-bottom: 4px;">
-                    Ср. доходность: ~€${lic.avgRatePerKmTon.toFixed(2)} / т·км
-                  </div>
+                  <p style="font-size: 0.72rem; color: var(--text-secondary); line-height: 1.35; margin: 6px 0;">${lic.desc}</p>
+                  <div style="font-size: 0.7rem; color: var(--accent-blue); margin-bottom: 4px;">Ср. доходность: ~€${lic.avgRatePerKmTon.toFixed(2)} / т·км</div>
                 </div>
 
-                <div class="mini-card-price-row" style="margin-top: 6px;">
+                <div class="terminal-bottom-block" style="margin-top: auto; padding-top: 8px; border-top: 1px dashed var(--glass-border);">
                   ${isOwned ? `
-                    <div style="text-align: center; color: var(--accent-green); font-size: 0.75rem; font-weight: 700; width: 100%; padding: 4px;">
-                      ✓ Действующий допуск
-                    </div>
+                    <div style="text-align: center; color: var(--accent-green); font-size: 0.75rem; font-weight: 700; width: 100%; padding: 4px;">✓ Действующий допуск</div>
                   ` : `
                     <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
                       <span style="font-size: 0.68rem; color: var(--text-muted);">Пошлина:</span>
                       <strong style="font-size: 0.82rem; color: var(--accent-green);">€${lic.cost.toLocaleString()}</strong>
                     </div>
-                    <button class="btn-glass primary small" style="width: 100%; padding: 5px; font-size: 0.72rem;" 
-                      ${!canBuy ? 'disabled' : ''} 
-                      onclick="AppOfficeHub.buyLicense('${lic.id}')">
+                    <button class="btn-glass primary small" style="width: 100%; padding: 5px; font-size: 0.72rem;" ${!canBuy ? 'disabled' : ''} onclick="AppOfficeHub.buyLicense('${lic.id}')">
                       ${!hasRep ? `Низкая репутация (<${lic.minReputation})` : (!canAfford ? 'Не хватает средств' : 'Оформить допуск')}
                     </button>
                   `}
@@ -411,9 +413,8 @@ const AppOfficeHub = {
 
     s.company.reputation = Math.min(100, s.company.reputation + 2);
 
-    // Сразу генерируем свежий пул заказов, чтобы появились грузы новой категории
     if (typeof AppOrders !== "undefined") {
-      AppOrders.generateOrdersBatch(8);
+      AppOrders.generateAllCategoriesOrders();
     }
 
     AppStorage.save(s);
@@ -423,21 +424,31 @@ const AppOfficeHub = {
     AppUI.showToast(`Лицензия «${lic.name}» оформлена! На биржу добавлены новые дорогие грузы.`, "success");
   },
 
-  renderDriversSubView() {
+renderDriversSubView() {
     const s = AppState.get();
     const currentSpec = this.getCurrentLevelSpec();
-    const isAtLimit = s.drivers.length >= currentSpec.maxDrivers;
+    
+    if (!s.company) s.company = {};
+    if (typeof s.company.extraDriverSlots !== "number") s.company.extraDriverSlots = 0;
+    const totalMaxDrivers = currentSpec.maxDrivers + s.company.extraDriverSlots;
+    const isAtLimit = s.drivers.length >= totalMaxDrivers;
+    const expansionCost = 15000 + (s.company.extraDriverSlots * 5000);
 
     return `
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3); flex-wrap: wrap; gap: 8px;">
         <span style="font-size: 0.8rem; color: var(--text-muted);">
-          Штат водителей: <strong>${s.drivers.length}</strong> из <strong>${currentSpec.maxDrivers}</strong> допустимых на Уровне ${currentSpec.level}
+          Штат водителей: <strong>${s.drivers.length}</strong> из <strong>${totalMaxDrivers}</strong> доступных мест
         </span>
-        <button class="btn-glass small primary" 
-          ${isAtLimit ? 'disabled' : ''} 
-          onclick="AppUI.switchTab('market_hub'); AppMarketHub.setSubTab('hr');">
-          ${isAtLimit ? 'Лимит штата достигнут' : '+ Нанять водителя'}
-        </button>
+        <div style="display: flex; gap: 6px;">
+          <button class="btn-glass small" onclick="AppDrivers.expandDriverSlot()">
+            🏢 Расширить (€${expansionCost.toLocaleString()})
+          </button>
+          <button class="btn-glass small primary" 
+            ${isAtLimit ? 'disabled' : ''} 
+            onclick="AppUI.switchTab('market_hub'); AppMarketHub.setSubTab('hr');">
+            ${isAtLimit ? 'Лимит штата полон' : '+ Нанять водителя'}
+          </button>
+        </div>
       </div>
 
       <div class="drivers-grid">
@@ -482,7 +493,7 @@ const AppOfficeHub = {
       `;
     },
 
-  renderAchievementsSubView() {
+  renderAchievementsSubSubView() {
     return `
       <div style="margin-bottom: var(--space-3);">
         <h3 style="font-size: 1rem; font-weight: 700;">Корпоративные достижения & Награды</h3>
@@ -491,5 +502,9 @@ const AppOfficeHub = {
 
       ${AppAnalytics.renderAchievementsSubviewHTML()}
     `;
+  },
+
+  renderAchievementsSubView() {
+    return this.renderAchievementsSubSubView();
   }
 };

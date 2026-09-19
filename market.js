@@ -43,7 +43,6 @@ const AppMarket = {
     const s = AppState.get();
     const generated = [];
 
-    // Генерируем 8 слотов (было 4 + 4 новых)
     for (let i = 0; i < count; i++) {
       const template = TRUCK_MODELS[Math.floor(Math.random() * TRUCK_MODELS.length)];
       const mileage = Math.floor(Math.random() * 450000) + 120000;
@@ -68,7 +67,10 @@ const AppMarket = {
       generated.push({
         id: "used-" + Date.now().toString(36) + "-" + i,
         model: template.modelName,
+        modelId: template.modelId,
         brand: template.brand,
+        engineType: template.engineType,
+        enginePowerHp: template.enginePowerHp,
         year: 2026 - ageYears,
         mileageKm: mileage,
         fuelTankL: template.fuelTankCapacityL,
@@ -176,6 +178,12 @@ const AppMarket = {
     const truck = s.market.usedTrucksMarket.find(t => t.id === truckId);
     if (!truck) return;
 
+    const spec = (typeof TRUCK_MODELS !== "undefined") ? TRUCK_MODELS.find(m => m.modelName === truck.model || m.modelId === truck.modelId) : null;
+    const power = spec ? spec.enginePowerHp : (truck.enginePowerHp || 450);
+    const tank = spec ? spec.fuelTankCapacityL : (truck.fuelTankL || 800);
+    const consumption = spec ? spec.baseFuelConsumptionL100 : (truck.avgConsumptionL100 || 32);
+    const engineType = spec ? spec.engineType : (truck.engineType || "diesel");
+
     const avgHealth = Math.round(Object.values(truck.components).reduce((a, b) => a + b, 0) / 7);
     const availableSlots = s.garage.slots - s.trucks.length;
     const canAfford = s.finances.balance >= truck.purchasePrice;
@@ -191,7 +199,7 @@ const AppMarket = {
           <span class="badge" style="color: var(--accent-orange);">Б/У Сток</span>
         </div>
 
-        <div style="display: flex; gap: var(--space-2);">
+        <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
           <span class="badge" style="color: ${truck.accidentsCount === 0 ? 'var(--accent-green)' : 'var(--accent-orange)'};">
             ${truck.accidentsCount === 0 ? '✓ Без ДТП' : `⚠️ ДТП: ${truck.accidentsCount}`}
           </span>
@@ -201,6 +209,17 @@ const AppMarket = {
           <span class="badge" style="color: var(--accent-blue);">
             Здоровье: ${avgHealth}%
           </span>
+          <span class="badge" style="color: var(--accent-green);">
+            ${power} л.с.
+          </span>
+        </div>
+
+        <!-- Блок технических характеристик как в автосалоне -->
+        <div style="background: rgba(0,0,0,0.2); padding: 8px 10px; border-radius: var(--radius-sm); font-size: 0.74rem; color: var(--text-muted); display: grid; grid-template-columns: 1fr 1fr; gap: 6px; border: 1px solid var(--glass-border);">
+          <div>Тип мотора: <strong style="color: var(--text-primary);">${engineType === 'electric' ? '⚡ Электро (BEV)' : '⛽ Дизель (EN 590)'}</strong></div>
+          <div>Объем бака: <strong style="color: var(--text-primary);">${tank} л</strong></div>
+          <div>Ср. расход: <strong style="color: var(--text-primary);">${consumption} л / 100км</strong></div>
+          <div>Мощность: <strong style="color: var(--text-primary);">${power} л.с.</strong></div>
         </div>
 
         <div class="components-wear-grid" style="margin: 4px 0;">

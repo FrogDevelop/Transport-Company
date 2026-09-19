@@ -102,30 +102,30 @@ const AppFinance = {
 
         <div>
           <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 8px;">Доступные банковские линии</h4>
-          <div class="market-trucks-compact-grid">
+          <div class="terminals-grid">
             ${this.LOAN_OFFERS.map(offer => {
               const rep = s.company.reputation || 0;
               const hasRep = rep >= offer.minReputation;
               const hasActiveSame = activeLoans.some(l => l.offerId === offer.id);
 
               return `
-                <div class="truck-mini-card" style="cursor: default; justify-content: space-between;">
-                  <div>
-                    <div class="mini-card-top">
-                      <span class="mini-card-model" style="-webkit-line-clamp: 1;">${offer.title}</span>
-                      <span class="mini-card-badge ${hasRep ? 'diesel' : 'used'}">
+                <div class="terminal-card unlocked" style="cursor: default; display: flex; flex-direction: column; justify-content: space-between;">
+                  <div class="terminal-top-block">
+                    <div class="terminal-title" style="font-size: 0.88rem;">💳 ${offer.title}</div>
+                    <div class="terminal-badge-row">
+                      <span class="terminal-badge ${hasRep ? 'active' : 'locked'}">
                         ${hasRep ? 'Доступен' : `Репутация ${offer.minReputation}+`}
                       </span>
                     </div>
 
-                    <div style="font-size: 0.72rem; color: var(--text-secondary); line-height: 1.35; margin: 6px 0;">
+                    <p style="font-size: 0.72rem; color: var(--text-secondary); line-height: 1.35; margin: 6px 0;">
                       Сумма займа: <strong style="color: var(--accent-green);">€${offer.amount.toLocaleString()}</strong><br>
                       Срок возврата: <strong>${offer.durationDays} дней</strong> (${offer.dailyInterestPercent}% в день)
-                    </div>
+                    </p>
                   </div>
 
-                  <div class="mini-card-price-row" style="margin-top: 6px;">
-                    <button class="btn-glass primary small" style="width: 100%; padding: 5px;" 
+                  <div class="terminal-bottom-block" style="margin-top: auto; padding-top: 8px; border-top: 1px dashed var(--glass-border);">
+                    <button class="btn-glass primary small" style="width: 100%;" 
                       ${(!hasRep || hasActiveSame) ? 'disabled' : ''} 
                       onclick="AppFinance.takeLoan('${offer.id}')">
                       ${hasActiveSame ? 'Уже оформлен' : (!hasRep ? `Требуется ★ ${offer.minReputation}` : 'Взять кредит')}
@@ -148,6 +148,7 @@ const AppFinance = {
     if (!s.finances.activeLoans) s.finances.activeLoans = [];
 
     s.finances.balance += offer.amount;
+    s.finances.totalEarned = (s.finances.totalEarned || 0) + offer.amount;
     s.finances.activeLoans.push({
       id: "loan-" + Date.now().toString(36),
       offerId: offer.id,
@@ -175,7 +176,7 @@ const AppFinance = {
     }
 
     s.finances.balance -= loan.principalRemaining;
-    s.finances.todayExpenses += loan.principalRemaining;
+    s.finances.totalSpent = (s.finances.totalSpent || 0) + loan.principalRemaining;
     s.finances.activeLoans.splice(idx, 1);
 
     AppStorage.save(s);
@@ -227,28 +228,28 @@ const AppFinance = {
 
         <div>
           <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 8px;">Оформить тягач в лизинг (Аванс 15%)</h4>
-          <div class="market-trucks-compact-grid">
+          <div class="terminals-grid">
             ${leaseCatalog.map(m => {
               const downPayment = Math.round(m.basePrice * 0.15);
               const dailyRate = Math.round((m.basePrice * 0.92) / 30);
               const canAfford = s.finances.balance >= downPayment && availableSlots > 0;
 
               return `
-                <div class="truck-mini-card" style="cursor: default; justify-content: space-between;">
-                  <div>
-                    <div class="mini-card-top">
-                      <span class="mini-card-model" style="-webkit-line-clamp: 1;">${m.modelName}</span>
-                      <span class="mini-card-badge diesel">${m.enginePowerHp} л.с.</span>
+                <div class="terminal-card unlocked" style="cursor: default; display: flex; flex-direction: column; justify-content: space-between;">
+                  <div class="terminal-top-block">
+                    <div class="terminal-title" style="font-size: 0.88rem;">🚚 ${m.modelName}</div>
+                    <div class="terminal-badge-row">
+                      <span class="terminal-badge active">${m.enginePowerHp} л.с.</span>
                     </div>
 
-                    <div style="font-size: 0.72rem; color: var(--text-secondary); line-height: 1.35; margin: 6px 0;">
+                    <p style="font-size: 0.72rem; color: var(--text-secondary); line-height: 1.35; margin: 6px 0;">
                       Аванс (15%): <strong style="color: var(--accent-green);">€${downPayment.toLocaleString()}</strong><br>
                       Платёж: <strong>€${dailyRate}/день</strong> (на 30 дней)
-                    </div>
+                    </p>
                   </div>
 
-                  <div class="mini-card-price-row" style="margin-top: 6px;">
-                    <button class="btn-glass primary small" style="width: 100%; padding: 5px;" 
+                  <div class="terminal-bottom-block" style="margin-top: auto; padding-top: 8px; border-top: 1px dashed var(--glass-border);">
+                    <button class="btn-glass primary small" style="width: 100%;" 
                       ${!canAfford ? 'disabled' : ''} 
                       onclick="AppFinance.signTruckLease('${m.modelId}')">
                       ${availableSlots <= 0 ? 'Нет мест в гараже' : (s.finances.balance < downPayment ? 'Не хватает аванса' : 'Оформить лизинг')}
@@ -280,7 +281,7 @@ const AppFinance = {
     }
 
     s.finances.balance -= downPayment;
-    s.finances.todayExpenses += downPayment;
+    s.finances.totalSpent = (s.finances.totalSpent || 0) + downPayment;
 
     if (!s.finances.activeLeases) s.finances.activeLeases = [];
 
@@ -337,7 +338,7 @@ const AppFinance = {
     }
 
     s.finances.balance -= lease.buyoutPrice;
-    s.finances.todayExpenses += lease.buyoutPrice;
+    s.finances.totalSpent = (s.finances.totalSpent || 0) + lease.buyoutPrice;
 
     const trk = s.trucks.find(t => t.leaseId === leaseId);
     if (trk) {
@@ -363,35 +364,35 @@ const AppFinance = {
           Страховка покрывает убытки компании при авариях, поломках узлов и непредвиденных срывах сроков.
         </div>
 
-        <div class="market-trucks-compact-grid">
+        <div class="terminals-grid">
           ${this.INSURANCE_POLICIES.map(pol => {
             const isCurrent = pol.id === currentPolicyId;
             const totalDaily = pol.dailyCostPerTruck * s.trucks.length;
 
             return `
-              <div class="truck-mini-card" style="cursor: default; justify-content: space-between;">
-                <div>
-                  <div class="mini-card-top">
-                    <span class="mini-card-model" style="-webkit-line-clamp: 1;">${pol.name}</span>
-                    <span class="mini-card-badge ${isCurrent ? 'diesel' : 'used'}">
+              <div class="terminal-card unlocked" style="cursor: default; display: flex; flex-direction: column; justify-content: space-between;">
+                <div class="terminal-top-block">
+                  <div class="terminal-title" style="font-size: 0.88rem;">🛡️ ${pol.name}</div>
+                  <div class="terminal-badge-row">
+                    <span class="terminal-badge ${isCurrent ? 'active' : 'locked'}">
                       ${isCurrent ? 'Активен' : `${pol.accidentCoverPercent}% покр.`}
                     </span>
                   </div>
 
-                  <div style="font-size: 0.72rem; color: var(--text-secondary); line-height: 1.35; margin: 6px 0;">
+                  <p style="font-size: 0.72rem; color: var(--text-secondary); line-height: 1.35; margin: 6px 0;">
                     ${pol.desc}<br>
                     Покрытие инцидентов: <strong style="color: var(--accent-green);">${pol.accidentCoverPercent}%</strong><br>
                     Тариф за тягач: <strong>€${pol.dailyCostPerTruck}/день</strong>
-                  </div>
+                  </p>
                 </div>
 
-                <div class="mini-card-price-row" style="margin-top: 6px;">
+                <div class="terminal-bottom-block" style="margin-top: auto; padding-top: 8px; border-top: 1px dashed var(--glass-border);">
                   ${isCurrent ? `
                     <div style="text-align: center; color: var(--accent-green); font-size: 0.76rem; font-weight: 700; padding: 4px;">
                       ✓ Текущий полис (€${totalDaily}/день)
                     </div>
                   ` : `
-                    <button class="btn-glass primary small" style="width: 100%; padding: 5px;" 
+                    <button class="btn-glass primary small" style="width: 100%;" 
                       onclick="AppFinance.selectInsurancePolicy('${pol.id}')">
                       Перейти на полис
                     </button>
@@ -427,7 +428,7 @@ const AppFinance = {
         const totalDayPay = Math.round(interest + principalPart);
 
         s.finances.balance -= totalDayPay;
-        s.finances.todayExpenses += totalDayPay;
+        s.finances.totalSpent = (s.finances.totalSpent || 0) + totalDayPay;
         loan.principalRemaining = Math.max(0, loan.principalRemaining - principalPart);
         loan.daysRemaining -= 1;
       });
@@ -438,7 +439,7 @@ const AppFinance = {
     if (s.finances.activeLeases && s.finances.activeLeases.length > 0) {
       s.finances.activeLeases.forEach(lease => {
         s.finances.balance -= lease.dailyPayment;
-        s.finances.todayExpenses += lease.dailyPayment;
+        s.finances.totalSpent = (s.finances.totalSpent || 0) + lease.dailyPayment;
         lease.daysRemaining -= 1;
         lease.buyoutPrice = Math.max(0, lease.buyoutPrice - (lease.dailyPayment * 0.7));
       });
@@ -450,7 +451,7 @@ const AppFinance = {
     if (pol && s.trucks.length > 0) {
       const insuranceCost = pol.dailyCostPerTruck * s.trucks.length;
       s.finances.balance -= insuranceCost;
-      s.finances.todayExpenses += insuranceCost;
+      s.finances.totalSpent = (s.finances.totalSpent || 0) + insuranceCost;
     }
   }
 };

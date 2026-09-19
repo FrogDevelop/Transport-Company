@@ -228,7 +228,6 @@ const TRUCK_MODELS = [
   },
 
   // Электрический флагманский сегмент (Electric BEV)
-  // Из-за массы батарей (около 3.5–4.5 тонн) полезная нагрузка строго 22–24 тонны
   {
     modelId: "volvo-fh-electric",
     brand: "Volvo",
@@ -301,7 +300,7 @@ const TRUCK_MODELS = [
   }
 ];
 
-// Реалистичные ветки тюнинга с умеренными прибавками
+// Реалистичные ветки тюнинга
 const TRUCK_TUNING_BRANCHES = [
   {
     id: "ecu",
@@ -466,5 +465,59 @@ const TRUCK_TUNING_BRANCHES = [
         desc: "-55% износа тормозов и непрерывное торможение без перегрева"
       }
     ]
+  }
+];
+
+// Новая система: Каталог полуприцепов
+const TRAILER_MODELS = [
+  {
+    modelId: "trl-curtain-krone", 
+    brand: "Krone", 
+    modelName: "Profi Liner (Тент)", 
+    type: "curtainsider",
+    basePrice: 22000, 
+    durabilityRating: 1.0, 
+    icon: "📦", 
+    desc: "Универсальный тентованный полуприцеп для стандартных грузов."
+  },
+  {
+    modelId: "trl-curtain-schmitz", 
+    brand: "Schmitz", 
+    modelName: "Cargobull S.CS (Тент)", 
+    type: "curtainsider",
+    basePrice: 24500, 
+    durabilityRating: 1.1, 
+    icon: "📦", 
+    desc: "Усиленный тент, отличная аэродинамика и защита."
+  },
+  {
+    modelId: "trl-reefer-schmitz", 
+    brand: "Schmitz", 
+    modelName: "S.KO Cool (Рефрижератор)", 
+    type: "refrigerated",
+    basePrice: 42000, 
+    durabilityRating: 0.95, 
+    icon: "❄️", 
+    desc: "Изотермический фургон с ХОУ. Увеличивает расход топлива тягача на 15%."
+  },
+  {
+    modelId: "trl-reefer-krone", 
+    brand: "Krone", 
+    modelName: "Cool Liner (Рефрижератор)", 
+    type: "refrigerated",
+    basePrice: 39500, 
+    durabilityRating: 0.9, 
+    icon: "❄️", 
+    desc: "Надежный реф для перевозки скоропорта и медикаментов."
+  },
+  {
+    modelId: "trl-flatbed-faymonville", 
+    brand: "Faymonville", 
+    modelName: "TeleMAX (Платформа)", 
+    type: "flatbed",
+    basePrice: 35000, 
+    durabilityRating: 1.2, 
+    icon: "🏗️", 
+    desc: "Раздвижная платформа для тяжелого и негабаритного оборудования."
   }
 ];

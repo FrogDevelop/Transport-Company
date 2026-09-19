@@ -125,8 +125,23 @@ const AppDrivers = {
     `;
   },
 
-  hireCandidate(candidateId) {
+hireCandidate(candidateId) {
     const s = AppState.get();
+    
+    if (!s.company) s.company = {};
+    if (typeof s.company.extraDriverSlots !== "number") s.company.extraDriverSlots = 0;
+
+    let baseMaxDrivers = 3;
+    if (typeof AppOfficeHub !== "undefined" && typeof AppOfficeHub.getCurrentLevelSpec === "function") {
+      baseMaxDrivers = AppOfficeHub.getCurrentLevelSpec().maxDrivers;
+    }
+    const totalMaxDrivers = baseMaxDrivers + s.company.extraDriverSlots;
+
+    if (s.drivers.length >= totalMaxDrivers) {
+      alert(`Штат сотрудников заполнен (${s.drivers.length}/${totalMaxDrivers})!`);
+      return;
+    }
+
     const idx = s.marketDrivers.findIndex(c => c.id === candidateId);
     if (idx === -1) return;
 
@@ -138,6 +153,7 @@ const AppDrivers = {
 
     s.finances.balance -= cand.hiringBonus;
     s.finances.todayExpenses += cand.hiringBonus;
+    s.finances.totalSpent = (s.finances.totalSpent || 0) + cand.hiringBonus;
 
     s.drivers.push({
       id: "drv-" + Date.now().toString(36),
@@ -160,7 +176,56 @@ const AppDrivers = {
     if (typeof AppOfficeHub !== "undefined" && AppUI.currentTab === "office_hub") {
       AppOfficeHub.renderView();
     }
-    alert(`Водитель ${cand.name} зачислен в штат компании!`);
+  },
+
+  expandDriverSlot() {
+    const s = AppState.get();
+    if (!s.company) s.company = {};
+    if (typeof s.company.extraDriverSlots !== "number") s.company.extraDriverSlots = 0;
+
+    const expansionCost = 15000 + (s.company.extraDriverSlots * 5000);
+
+    if (s.finances.balance < expansionCost) {
+      alert(`Недостаточно средств! Стоимость расширения: €${expansionCost.toLocaleString()}`);
+      return;
+    }
+
+    s.finances.balance -= expansionCost;
+    s.finances.todayExpenses += expansionCost;
+    s.finances.totalSpent = (s.finances.totalSpent || 0) + expansionCost;
+    s.company.extraDriverSlots += 1;
+
+    AppStorage.save(s);
+    AppUI.renderAll();
+    if (typeof AppOfficeHub !== "undefined") AppOfficeHub.renderView();
+    
+    if (typeof AppUI !== "undefined" && typeof AppUI.showToast === "function") {
+      AppUI.showToast("Штат успешно расширен, добавлено новое место!", "success");
+    }
+  },
+
+  // Функция покупки дополнительного слота штата за деньги (например, €15,000 за 1 слот)
+  expandDriverSlot() {
+    const s = AppState.get();
+    if (!s.company) s.company = {};
+    if (typeof s.company.extraDriverSlots !== "number") s.company.extraDriverSlots = 0;
+
+    const expansionCost = 15000 + (s.company.extraDriverSlots * 5000); // Цена растет с каждым купленным слотом
+
+    if (s.finances.balance < expansionCost) {
+      alert(`Недостаточно средств! Стоимость расширения штата: €${expansionCost.toLocaleString()}`);
+      return;
+    }
+
+    s.finances.balance -= expansionCost;
+    s.finances.todayExpenses += expansionCost;
+    s.finances.totalSpent = (s.finances.totalSpent || 0) + expansionCost;
+    s.company.extraDriverSlots += 1;
+
+    AppStorage.save(s);
+    AppUI.renderAll();
+    if (typeof AppOfficeHub !== "undefined") AppOfficeHub.renderView();
+    alert(`Штат успешно расширен! Добавлен +1 постоянный слот для найма (Всего куплено: ${s.company.extraDriverSlots}).`);
   },
 
   fireDriver(driverId) {
@@ -178,8 +243,11 @@ const AppDrivers = {
       return;
     }
 
-    const trk = s.trucks.find(t => t.id === d.assignedTruckId);
-    if (trk) trk.assignedDriverId = null;
+    const trk = s.trucks.find(t => t.assignedDriverId === driverId || t.coDriverId === driverId);
+    if (trk) {
+      if (trk.assignedDriverId === driverId) trk.assignedDriverId = null;
+      if (trk.coDriverId === driverId) trk.coDriverId = null;
+    }
 
     s.drivers.splice(idx, 1);
     AppStorage.save(s);

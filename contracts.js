@@ -304,7 +304,7 @@ const AppContracts = {
     }).join('');
   },
 
-  openTenderDetailModal(tenderId) {
+openTenderDetailModal(tenderId) {
     const s = AppState.get();
     const t = (s.marketTenders || []).find(x => x.id === tenderId);
     if (!t) return;
@@ -317,6 +317,12 @@ const AppContracts = {
 
     const potentialGross = Math.round(t.totalVolumeTons * t.ratePerTon + t.completionBonus);
     const fastCloseBonus = Math.round(t.completionBonus * 0.25);
+
+    // Читаем название типа прицепа для красоты
+    let trailerTypeText = "Любой стандартный прицеп";
+    if (t.requiredTrailerType === "refrigerated") trailerTypeText = "❄️ Рефрижератор (Reefer)";
+    else if (t.requiredTrailerType === "flatbed") trailerTypeText = "🏗️ Платформа (Flatbed)";
+    else if (t.requiredTrailerType === "curtainsider") trailerTypeText = "📦 Тентованный (Curtainsider)";
 
     const html = `
       <div style="display: flex; flex-direction: column; gap: var(--space-4);">
@@ -340,6 +346,10 @@ const AppContracts = {
           <tr>
             <td style="color: var(--text-muted);">Груз / Лицензия:</td>
             <td>${t.cargoIcon} ${t.cargoName}</td>
+          </tr>
+          <tr>
+            <td style="color: var(--text-muted);">Требуемый прицеп:</td>
+            <td style="color: var(--accent-blue);"><strong>${trailerTypeText}</strong></td>
           </tr>
           <tr>
             <td style="color: var(--text-muted);">Тариф за перевозку:</td>
@@ -378,7 +388,7 @@ const AppContracts = {
     AppUI.openSheet("Тендерное соглашение", html);
   },
 
-  openActiveContractModal(contractId) {
+openActiveContractModal(contractId) {
     const s = AppState.get();
     const cnt = (s.activeContracts || []).find(c => c.id === contractId);
     if (!cnt) return;
@@ -387,6 +397,11 @@ const AppContracts = {
     const progressPercent = Math.min(100, Math.round((cnt.deliveredVolumeTons / cnt.totalVolumeTons) * 100));
     const isEarlyQualify = cnt.daysRemaining >= Math.ceil(cnt.totalDays / 2);
     const fastCloseBonus = Math.round(cnt.completionBonus * 0.25);
+
+    let trailerTypeText = "Любой стандартный прицеп";
+    if (cnt.requiredTrailerType === "refrigerated") trailerTypeText = "❄️ Рефрижератор (Reefer)";
+    else if (cnt.requiredTrailerType === "flatbed") trailerTypeText = "🏗️ Платформа (Flatbed)";
+    else if (cnt.requiredTrailerType === "curtainsider") trailerTypeText = "📦 Тентованный (Curtainsider)";
 
     const html = `
       <div style="display: flex; flex-direction: column; gap: var(--space-4);">
@@ -420,6 +435,10 @@ const AppContracts = {
           <tr>
             <td style="color: var(--text-muted);">Груз:</td>
             <td>${cnt.cargoIcon} ${cnt.cargoName}</td>
+          </tr>
+          <tr>
+            <td style="color: var(--text-muted);">Требуемый прицеп:</td>
+            <td style="color: var(--accent-blue);"><strong>${trailerTypeText}</strong></td>
           </tr>
           <tr>
             <td style="color: var(--text-muted);">Оплата за 1 тонну:</td>
@@ -525,6 +544,7 @@ const AppContracts = {
             ${idleTrucks.map(rawTruck => {
               const truck = AppTrucks.ensureTruckSpecs(rawTruck);
               const driver = s.drivers ? s.drivers.find(d => d.id === truck.assignedDriverId) : null;
+              const attachedTrailer = truck.attachedTrailerId ? (s.trailers || []).find(tr => tr.id === truck.attachedTrailerId) : null;
               const currentHp = AppTrucks.getTruckCurrentPowerHp(truck);
               const currentPayload = AppTrucks.getTruckCurrentPayloadTons(truck);
 
@@ -534,12 +554,33 @@ const AppContracts = {
               const hasDriver = !!driver;
               const isRested = hasDriver && driver.stamina >= 20;
               const hasFuel = truck.fuelCurrentL >= 15;
-              const canDispatch = hasDriver && isRested && hasFuel;
+              
+              // Проверка прицепа: требуется ли прицеп и совпадает ли его тип с требованиями контракта
+              const requiredTrailerType = cnt.requiredTrailerType;
+              let hasCorrectTrailer = true;
+              let trailerReason = "";
+
+              if (requiredTrailerType) {
+                if (!attachedTrailer) {
+                  hasCorrectTrailer = false;
+                  trailerReason = "Нет прицепа";
+                } else if (attachedTrailer.type !== requiredTrailerType && requiredTrailerType !== "any") {
+                  hasCorrectTrailer = false;
+                  trailerReason = `Нужен ${requiredTrailerType}`;
+                }
+              }
+
+              const canDispatch = hasDriver && isRested && hasFuel && hasCorrectTrailer;
 
               let reason = "";
               if (!hasDriver) reason = "Без водителя";
               else if (!isRested) reason = "Шофер устал (<20%)";
               else if (!hasFuel) reason = "Пустой бак (<15 л)";
+              else if (!hasCorrectTrailer) reason = trailerReason;
+
+              let trailerHtml = attachedTrailer 
+                ? `<span style="color: var(--text-primary); font-weight: 600;">${attachedTrailer.icon} ${attachedTrailer.model}</span>` 
+                : '<span style="color: var(--accent-orange);">⚠️ Нет прицепа</span>';
 
               return `
                 <div class="terminal-card unlocked" style="cursor: default; padding: 10px 11px;">
@@ -553,6 +594,10 @@ const AppContracts = {
 
                     <div style="font-size: 0.7rem; color: var(--text-secondary); margin: 4px 0 2px 0;">
                       Шасси: <strong>до ${currentPayload} т</strong> • <strong>${currentHp} л.с.</strong>
+                    </div>
+
+                    <div style="font-size: 0.68rem; margin: 2px 0;">
+                      ${trailerHtml}
                     </div>
 
                     <div style="font-size: 0.68rem; color: var(--text-muted);">
@@ -591,6 +636,16 @@ const AppContracts = {
     const truck = AppTrucks.ensureTruckSpecs(rawTruck);
     const driver = s.drivers.find(d => d.id === truck.assignedDriverId);
     if (!driver) return;
+
+    // Дополнительная защита при вызове: проверяем наличие прицепа
+    const requiredTrailerType = cnt.requiredTrailerType;
+    if (requiredTrailerType) {
+      const attachedTrailer = truck.attachedTrailerId ? (s.trailers || []).find(tr => tr.id === truck.attachedTrailerId) : null;
+      if (!attachedTrailer || (attachedTrailer.type !== requiredTrailerType && requiredTrailerType !== "any")) {
+        AppUI.showToast("Для этого контракта требуется подходящий прикрепленный полуприцеп!", "error");
+        return;
+      }
+    }
 
     const route = AppOrders.getRouteData(cnt.originId, cnt.destinationId);
     const hpToWeightRatio = (truck.enginePowerHp || 480) / (tons + 14);

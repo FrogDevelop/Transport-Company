@@ -8,7 +8,7 @@ const AppGarage = {
       cost: 0,
       slots: 2,
       maxStage: 0,
-      repairTimeMinutes: 60,
+      repairTimeMinutes: 360, // 6 часов
       tuningTimeMinutes: 0,
       upkeepDaily: 90,
       desc: "Открытая стоянка без инженерных боксов. Тюнинг заблокирован, базовый сервис на сторонних СТО."
@@ -19,8 +19,8 @@ const AppGarage = {
       cost: 45000,
       slots: 4,
       maxStage: 1,
-      repairTimeMinutes: 45,
-      tuningTimeMinutes: 60,
+      repairTimeMinutes: 240, // 4 часа
+      tuningTimeMinutes: 300, // 5 часов
       upkeepDaily: 170,
       desc: "Оборудован тёплый ангар. Доступен Stage 1 тюнинга и возведение вспомогательных модулей."
     },
@@ -30,8 +30,8 @@ const AppGarage = {
       cost: 110000,
       slots: 7,
       maxStage: 2,
-      repairTimeMinutes: 30,
-      tuningTimeMinutes: 40,
+      repairTimeMinutes: 180, // 3 часа
+      tuningTimeMinutes: 180, // 3 часа
       upkeepDaily: 320,
       desc: "Стенды калибровки и ускоренный сервис. Доступен Stage 2 тюнинга и терминал кросс-докинга."
     },
@@ -41,8 +41,8 @@ const AppGarage = {
       cost: 240000,
       slots: 12,
       maxStage: 3,
-      repairTimeMinutes: 15,
-      tuningTimeMinutes: 20,
+      repairTimeMinutes: 90, // 1.5 часа
+      tuningTimeMinutes: 120, // 2 часа
       upkeepDaily: 580,
       desc: "Промышленный логистический центр. Максимальный тюнинг Stage 3 и телематический контроль флота."
     }
@@ -194,7 +194,7 @@ const AppGarage = {
           <!-- Навигационные вкладки -->
           <div class="finance-nav-tabs" style="margin-bottom: var(--space-3); overflow-x: auto;">
             <button class="fin-tab-btn ${this.currentSubTab === 'fleet' ? 'active' : ''}" onclick="AppGarage.setSubTab('fleet')">
-              🚛 Автопарк (${usedSlots}/${g.slots})
+              🚛 Автопарк
             </button>
             <button class="fin-tab-btn ${this.currentSubTab === 'infrastructure' ? 'active' : ''}" onclick="AppGarage.setSubTab('infrastructure')">
               🏭 Инфраструктура
@@ -224,41 +224,64 @@ const AppGarage = {
     return this.renderFleetSubViewHTML();
   },
 
+  // ИСПРАВЛЕННЫЙ БЛОК: Разделение на тягачи и прицепы
   renderFleetSubViewHTML() {
     const s = AppState.get();
-    let filteredTrucks = s.trucks || [];
+    if (!s.trailers) s.trailers = [];
 
-    if (AppTrucks.currentFilter !== "all") {
-      filteredTrucks = filteredTrucks.filter(t => t.status === AppTrucks.currentFilter);
-    }
+    const mode = (typeof AppTrucks !== "undefined") ? AppTrucks.displayMode : "trucks";
+    const filter = (typeof AppTrucks !== "undefined") ? AppTrucks.currentFilter : "all";
+
+    let filteredTrucks = (s.trucks || []).filter(t => filter === "all" || t.status === filter);
+    let filteredTrailers = (s.trailers || []).filter(t => filter === "all" || t.status === filter);
 
     return `
+      <div class="finance-nav-tabs" style="margin-bottom: var(--space-3); overflow-x: auto; white-space: nowrap; padding-bottom: 4px;">
+        <button class="fin-tab-btn ${mode === 'trucks' ? 'active' : ''}" onclick="AppTrucks.setDisplayMode('trucks');">
+          🚛 Тягачи (${s.trucks.length})
+        </button>
+        <button class="fin-tab-btn ${mode === 'trailers' ? 'active' : ''}" onclick="AppTrucks.setDisplayMode('trailers');">
+          📦 Полуприцепы (${s.trailers.length})
+        </button>
+      </div>
+
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3); flex-wrap: wrap; gap: 8px;">
         <div class="fleet-filter-group">
-          <button class="fleet-filter-chip ${AppTrucks.currentFilter === 'all' ? 'active' : ''}" onclick="AppTrucks.setFilter('all')">Все (${s.trucks.length})</button>
-          <button class="fleet-filter-chip ${AppTrucks.currentFilter === 'idle' ? 'active' : ''}" onclick="AppTrucks.setFilter('idle')">В гараже</button>
-          <button class="fleet-filter-chip ${AppTrucks.currentFilter === 'trip' ? 'active' : ''}" onclick="AppTrucks.setFilter('trip')">В пути</button>
+          <button class="fleet-filter-chip ${filter === 'all' ? 'active' : ''}" onclick="AppTrucks.setFilter('all')">Все</button>
+          <button class="fleet-filter-chip ${filter === 'idle' ? 'active' : ''}" onclick="AppTrucks.setFilter('idle')">На базе</button>
+          <button class="fleet-filter-chip ${filter === 'trip' ? 'active' : ''}" onclick="AppTrucks.setFilter('trip')">В работе</button>
         </div>
         <button class="btn-glass primary small" onclick="AppUI.switchTab('market_hub'); AppMarketHub.setSubTab('dealership');">+ В автосалон</button>
       </div>
 
-      ${filteredTrucks.length === 0 ? `
-        <div class="empty-state-card" style="padding: var(--space-6);">
-          <div style="font-size: 2.2rem; margin-bottom: 6px;">🚛</div>
-          <div style="font-weight: 700; font-size: 1rem; margin-bottom: 4px;">Нет тягачей по выбранному фильтру</div>
-          <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 12px;">
-            ${s.trucks.length === 0 ? 'В автопарке пока нет машин. Приобретите первый тягач на рынке.' : 'Все тягачи находятся в другом статусе.'}
-          </p>
-        </div>
+      ${mode === 'trucks' ? `
+        ${filteredTrucks.length === 0 ? `
+          <div class="empty-state-card" style="padding: var(--space-6);">
+            <div style="font-size: 2.2rem; margin-bottom: 6px;">🚛</div>
+            <div style="font-weight: 700; font-size: 1rem; margin-bottom: 4px;">Нет тягачей</div>
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 12px;">По выбранному фильтру ничего не найдено.</p>
+          </div>
+        ` : `
+          <div class="terminals-grid">
+            ${filteredTrucks.map(truck => AppTrucks.generateCompactFleetCardHTML(truck)).join('')}
+          </div>
+        `}
       ` : `
-        <div class="terminals-grid">
-          ${filteredTrucks.map(truck => AppTrucks.generateCompactFleetCardHTML(truck)).join('')}
-        </div>
+        ${filteredTrailers.length === 0 ? `
+          <div class="empty-state-card" style="padding: var(--space-6);">
+            <div style="font-size: 2.2rem; margin-bottom: 6px;">📦</div>
+            <div style="font-weight: 700; font-size: 1rem; margin-bottom: 4px;">Нет полуприцепов</div>
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 12px;">Купите первый полуприцеп в автосалоне, чтобы брать грузы.</p>
+          </div>
+        ` : `
+          <div class="terminals-grid">
+            ${filteredTrailers.map(trailer => AppTrucks.generateCompactTrailerCardHTML(trailer)).join('')}
+          </div>
+        `}
       `}
     `;
   },
 
-  // ОБНОВЛЁННАЯ ЛАКОНИЧНАЯ ИНФРАСТРУКТУРА
   renderInfrastructureSubViewHTML() {
     const s = AppState.get();
     const g = s.garage;
@@ -269,7 +292,6 @@ const AppGarage = {
 
     return `
       <div style="display: flex; flex-direction: column; gap: var(--space-3);">
-        <!-- Компактный виджет базы -->
         <div class="glass-card" style="padding: 12px 14px;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
             <div>
@@ -304,7 +326,6 @@ const AppGarage = {
           </div>
         </div>
 
-        <!-- Сетка модулей базы 2 в ряд -->
         <div class="terminals-grid">
           ${this.FACILITIES.map(fac => {
             const isBuilt = !!g[fac.id];
@@ -314,7 +335,7 @@ const AppGarage = {
               <div class="terminal-card ${isBuilt ? 'unlocked' : 'locked'}" onclick="AppGarage.openFacilityDetailModal('${fac.id}')">
                 <div class="terminal-top-block">
                   <div class="terminal-title" style="font-size: 0.86rem;">
-                    ${fac.icon} ${fac.name}
+                    ${fac.icon}${fac.name}
                   </div>
                   <div class="terminal-badge-row">
                     <span class="terminal-badge ${isBuilt ? 'active' : 'locked'}">
@@ -349,7 +370,6 @@ const AppGarage = {
     `;
   },
 
-  // Модальное окно с деталями модуля
   openFacilityDetailModal(facilityId) {
     const s = AppState.get();
     const fac = this.FACILITIES.find(f => f.id === facilityId);
@@ -408,7 +428,6 @@ const AppGarage = {
     AppUI.openSheet("Спецификация инфраструктуры", html);
   },
 
-  // 3. ТОПЛИВНЫЙ ТЕРМИНАЛ
   renderFuelTerminalSubViewHTML() {
     const s = AppState.get();
     const fs = s.garage.fuelStation;
@@ -463,8 +482,7 @@ const AppGarage = {
             <div style="font-weight: 700; font-size: 0.88rem; margin-bottom: 8px;">Заказ партии дизеля</div>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
               ${this.renderFuelOrderOption(3000, effectiveWholesalePrice)}
-              ${this.renderFuelOrderOption(6000, effectiveWholesalePrice)}
-              ${this.renderFuelOrderOption(fs.capacityLiters - fs.currentLiters, effectiveWholesalePrice, "Полный")}
+              ${this.renderFuelOrderOption(6000, effectiveWholesalePrice)}${this.renderFuelOrderOption(fs.capacityLiters - fs.currentLiters, effectiveWholesalePrice, "Полный")}
             </div>
           </div>
         `}
